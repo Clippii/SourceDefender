@@ -20,6 +20,7 @@ installation is required to play. Keep the app and engine together; on macOS bot
 are inside the application bundle. Downloads include `SHA256SUMS.txt` on the release page.
 
 Linux builds target Ubuntu 24.04 or newer with a graphical desktop and OpenGL.
+The X11 backend needs `libxkbcommon-x11-0` (install with `sudo apt-get install libxkbcommon-x11-0` if absent).
 Folder browsing uses `zenity` or `kdialog`; entering a path directly also works.
 macOS builds target macOS 14 or newer and are ad-hoc signed, **not Apple notarized**.
 If macOS blocks the first launch, review the source/checksum and approve the app
@@ -82,7 +83,7 @@ windowing/OpenGL development libraries; on Ubuntu:
 
 ```sh
 sudo apt-get install build-essential pkg-config libx11-dev libxrandr-dev libxi-dev \
-  libxcursor-dev libxinerama-dev libxkbcommon-dev libwayland-dev \
+  libxcursor-dev libxinerama-dev libxkbcommon-dev libxkbcommon-x11-dev libwayland-dev \
   libgl1-mesa-dev libegl1-mesa-dev libudev-dev zenity
 bash build.sh --test
 ```

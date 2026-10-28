@@ -351,7 +351,7 @@ impl eframe::App for Defender {
                     self.history = true;
                 }
                 ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
-                    ui.label(RichText::new("Version 0.3.0").size(11.0).color(MUTED));
+                    ui.label(RichText::new("Version 0.3.1").size(11.0).color(MUTED));
                     ui.label(
                         RichText::new("Local files · Your editor")
                             .size(12.0)
