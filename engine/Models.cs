@@ -27,6 +27,8 @@ namespace SourceDefender {
     }
     public class Run {
         public string Id, Folder, Scenario, Language, Seed, StartedUtc, FinishedUtc, Status;
+        public string Mode = "human";
+        public int ToolCalls;
         public int Level, PenaltySeconds, Attempts, Hints;
         public int TemplateVersion;
         public List<string> RequiredFiles = new List<string>();
@@ -39,6 +41,7 @@ namespace SourceDefender {
         public int Score { get { return Math.Max(100, (Level+1)*5000-(int)Seconds-Attempts*50-Hints*100); } }
     }
     public static class Store {
+        static Store() {}
         public static readonly string Root = DataRoot();
         static string DataRoot() {
             string configured = Environment.GetEnvironmentVariable("SOURCEDEFENDER_DATA_DIR");
@@ -51,6 +54,14 @@ namespace SourceDefender {
             return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SourceDefender");
         }
         static JavaScriptSerializer json = new JavaScriptSerializer();
+        public static IDisposable AcquireLock() {
+            Directory.CreateDirectory(Root);
+            var timer=System.Diagnostics.Stopwatch.StartNew();
+            while(true) {
+                try {return new FileStream(Path.Combine(Root,".store.lock"),FileMode.OpenOrCreate,FileAccess.ReadWrite,FileShare.None);}
+                catch(IOException) {if(timer.Elapsed.TotalSeconds>=20)throw new InvalidOperationException("The local game store is busy. Try again shortly.");System.Threading.Thread.Sleep(40);}
+            }
+        }
         public static List<Run> Load() {
             Directory.CreateDirectory(Root);
             var result = new List<Run>();
@@ -59,9 +70,9 @@ namespace SourceDefender {
         }
         public static void Save(Run r) {
             Directory.CreateDirectory(Root);
-            string path=Path.Combine(Root,r.Id+".json"), temp=path+".tmp";
+            string path=Path.Combine(Root,r.Id+".json"), temp=path+"."+Guid.NewGuid().ToString("N")+".tmp";
             File.WriteAllText(temp,json.Serialize(r));
-            if(File.Exists(path)) File.Replace(temp,path,null); else File.Move(temp,path);
+            try {File.Move(temp,path,true);}finally {if(File.Exists(temp))File.Delete(temp);}
         }
     }
 }

@@ -6,8 +6,8 @@ using System.Collections.Generic;
 using System.Diagnostics;
 namespace SourceDefender {
  public static class Engine {
-  public static Run Generate(string parent,int level,string language,Scenario scenario,string seed) {
-   var r=new Run{Id=Guid.NewGuid().ToString("N"),Level=level,Language=language,Scenario=scenario.Name,Seed=string.IsNullOrWhiteSpace(seed)?Guid.NewGuid().ToString("N").Substring(0,8):seed,StartedUtc=DateTime.UtcNow.ToString("o"),Status="Active",TemplateVersion=ProjectTemplates.Version};
+  public static Run Generate(string parent,int level,string language,Scenario scenario,string seed,string mode="human") {
+   var r=new Run{Id=Guid.NewGuid().ToString("N"),Level=level,Language=language,Scenario=scenario.Name,Seed=string.IsNullOrWhiteSpace(seed)?Guid.NewGuid().ToString("N").Substring(0,8):seed,StartedUtc=DateTime.UtcNow.ToString("o"),Status="Active",TemplateVersion=ProjectTemplates.Version,Mode=mode,ToolCalls=mode=="agent_practice"?1:0};
    r.Folder=Path.Combine(parent,scenario.Slug+"-"+r.Id.Substring(0,8));
    Directory.CreateDirectory(r.Folder);
    try {
@@ -63,7 +63,25 @@ namespace SourceDefender {
    return failed;
   }
   public static bool Git(string dir,string args) {
-   try { var p=new Process();p.StartInfo=new ProcessStartInfo("git",args){WorkingDirectory=dir,UseShellExecute=false,CreateNoWindow=true,RedirectStandardOutput=true,RedirectStandardError=true};p.Start();p.BeginOutputReadLine();p.BeginErrorReadLine();if(!p.WaitForExit(10000)){p.Kill();return false;}return p.ExitCode==0; } catch{return false;}
+   // MCP invokes tools on the host's worker pool. Dedicated pipe readers avoid
+   // starving that pool while Git waits for stdout/stderr to be drained.
+   // Generation never needs terminal input, user hooks, or a signing prompt.
+   try {using(var p=new Process()) {
+    p.StartInfo=new ProcessStartInfo("git","-c core.hooksPath=/dev/null -c commit.gpgsign=false "+args) {
+     WorkingDirectory=dir,UseShellExecute=false,CreateNoWindow=true,
+     RedirectStandardInput=true,RedirectStandardOutput=true,RedirectStandardError=true
+    };
+    p.StartInfo.Environment["GIT_TERMINAL_PROMPT"]="0";
+    p.StartInfo.Environment["GCM_INTERACTIVE"]="Never";
+    p.Start();p.StandardInput.Close();
+    var stdout=new System.Threading.Thread(()=>{try{p.StandardOutput.ReadToEnd();}catch{}}){IsBackground=true};
+    var stderr=new System.Threading.Thread(()=>{try{p.StandardError.ReadToEnd();}catch{}}){IsBackground=true};
+    stdout.Start();stderr.Start();
+    bool exited=p.WaitForExit(10000);
+    if(!exited){p.Kill(true);p.WaitForExit();}
+    stdout.Join(1000);stderr.Join(1000);
+    return exited&&p.ExitCode==0;
+   }} catch{return false;}
   }
  }
  public static class SelfTest {

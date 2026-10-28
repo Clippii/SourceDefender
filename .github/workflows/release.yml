@@ -54,6 +54,8 @@ jobs:
         run: bash ./build.sh --test
       - name: Verify generated projects
         run: python tests/verify_projects.py
+      - name: Verify MCP agent practice
+        run: python tests/verify_mcp.py
       - name: Linux graphical smoke test
         if: runner.os == 'Linux'
         env:

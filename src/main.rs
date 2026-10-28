@@ -3,7 +3,10 @@ mod backend;
 use backend::{Action, Run, Snapshot};
 use eframe::egui::{self, Color32, RichText, Vec2};
 use serde_json::{Value, json};
-use std::{sync::mpsc, time::Duration};
+use std::{
+    sync::mpsc,
+    time::{Duration, Instant},
+};
 
 const ACCENT: Color32 = Color32::from_rgb(129, 166, 239);
 const MUTED: Color32 = Color32::from_rgb(150, 158, 173);
@@ -57,6 +60,8 @@ fn app_icon() -> egui::IconData {
 struct Defender {
     snapshot: Snapshot,
     current: Option<Run>,
+    human_run_id: Option<String>,
+    monitor_agent: bool,
     setup: bool,
     history: bool,
     confirm_end: bool,
@@ -68,6 +73,10 @@ struct Defender {
     report: String,
     error: Option<String>,
     busy: bool,
+    refreshing: bool,
+    last_refresh: Instant,
+    refresh_error: Option<String>,
+    pending_request: Option<Value>,
     receiver: mpsc::Receiver<(String, Result<Value, String>)>,
     sender: mpsc::Sender<(String, Result<Value, String>)>,
 }
@@ -95,6 +104,8 @@ impl Defender {
         let mut app = Self {
             snapshot: Snapshot::default(),
             current: None,
+            human_run_id: None,
+            monitor_agent: false,
             setup: false,
             history: false,
             confirm_end: false,
@@ -106,46 +117,78 @@ impl Defender {
             report: "Loading local incident records…".into(),
             error: None,
             busy: false,
+            refreshing: false,
+            last_refresh: Instant::now(),
+            refresh_error: None,
+            pending_request: None,
             receiver,
             sender,
         };
         app.request(json!({"command":"snapshot"}));
         app
     }
-    fn request(&mut self, request: Value) {
+    fn request(&mut self, mut request: Value) {
         if self.busy {
             return;
         }
-        self.busy = true;
-        self.error = None;
+        let command = request["command"].as_str().unwrap_or("").to_owned();
+        let refresh = command == "refresh";
+        if self.refreshing {
+            if !refresh {
+                self.pending_request = Some(request);
+                self.busy = true;
+                self.error = None;
+            }
+            return;
+        }
+        if refresh {
+            self.refreshing = true;
+            request["command"] = json!("snapshot");
+        } else {
+            self.busy = true;
+            self.error = None;
+        }
         let sender = self.sender.clone();
         std::thread::spawn(move || {
-            let command = request["command"].as_str().unwrap_or("").to_owned();
             let result = backend::call(request);
             let _ = sender.send((command, result));
         });
     }
     fn receive(&mut self) {
         while let Ok((command, result)) = self.receiver.try_recv() {
-            self.busy = false;
+            let refresh = command == "refresh";
+            if refresh {
+                self.refreshing = false;
+            } else {
+                self.busy = false;
+            }
+            self.last_refresh = Instant::now();
             match result {
-                Err(e) => self.error = Some(e),
+                Err(e) => {
+                    if refresh {
+                        self.refresh_error = Some(e);
+                    } else {
+                        self.error = Some(e);
+                    }
+                }
                 Ok(data) => {
-                    if command == "snapshot" {
+                    if command == "snapshot" || refresh {
                         match serde_json::from_value::<Snapshot>(data) {
                             Err(e) => {
-                                self.error = Some(format!("Could not read local records: {e}"))
+                                let message = format!("Could not read local records: {e}");
+                                if refresh {
+                                    self.refresh_error = Some(message);
+                                } else {
+                                    self.error = Some(message);
+                                }
                             }
                             Ok(snapshot) => {
-                                self.current =
-                                    snapshot.runs.iter().find(|r| r.status == "Active").cloned();
                                 self.snapshot = snapshot;
-                                self.setup = self.current.is_none();
-                                self.report = if self.current.is_some() {
-                                    "Active incident restored. The clock has continued while the app was closed.".into()
-                                } else {
-                                    "A trusted account has been compromised. Investigate the repository, remove attacker changes, and contain the incident.\n\nYour editor. Real files. Local Git evidence.\n\nChoose an incident to begin.".into()
-                                };
+                                self.refresh_error = None;
+                                self.refresh_current(!refresh);
+                                if !refresh {
+                                    self.setup = self.current.is_none() && !self.monitor_agent;
+                                }
                             }
                         }
                     } else {
@@ -154,13 +197,19 @@ impl Defender {
                                 self.error = Some(format!("Could not read engine result: {e}"))
                             }
                             Ok(action) => {
-                                self.report = action.report;
                                 self.snapshot.runs.retain(|r| r.id != action.run.id);
                                 self.snapshot.runs.insert(0, action.run.clone());
-                                self.current = Some(action.run);
+                                self.human_run_id = Some(action.run.id.clone());
                                 if command == "generate" {
+                                    self.monitor_agent = false;
                                     self.setup = false;
                                     self.history = false;
+                                }
+                                if self.monitor_agent {
+                                    self.refresh_current(false);
+                                } else {
+                                    self.report = action.report;
+                                    self.current = Some(action.run);
                                 }
                             }
                         }
@@ -168,12 +217,79 @@ impl Defender {
                 }
             }
         }
+        if !self.refreshing {
+            if let Some(request) = self.pending_request.take() {
+                self.busy = false;
+                self.request(request);
+            }
+        }
+    }
+    fn refresh_current(&mut self, force_report: bool) {
+        let next = if self.monitor_agent {
+            self.snapshot
+                .runs
+                .iter()
+                .find(|r| r.is_agent() && r.status == "Active")
+                .or_else(|| self.snapshot.runs.iter().find(|r| r.is_agent()))
+        } else {
+            self.human_run_id
+                .as_ref()
+                .and_then(|id| {
+                    self.snapshot
+                        .runs
+                        .iter()
+                        .find(|r| !r.is_agent() && &r.id == id)
+                })
+                .or_else(|| {
+                    self.snapshot
+                        .runs
+                        .iter()
+                        .find(|r| !r.is_agent() && r.status == "Active")
+                })
+        }
+        .cloned();
+        let changed = match (&self.current, &next) {
+            (Some(old), Some(new)) => {
+                old.id != new.id || old.events != new.events || old.status != new.status
+            }
+            (None, None) => false,
+            _ => true,
+        };
+        if force_report || changed {
+            self.report = next.as_ref().and_then(|r| r.events.last()).cloned().unwrap_or_else(|| {
+                if self.monitor_agent {
+                    "Connect your AI agent to the SourceDefender MCP server and ask it to start a practice incident. The agent investigates and repairs files with its own workspace tools.\n\nRun progress and validation results appear here automatically.".into()
+                } else {
+                    "A trusted account has been compromised. Investigate the repository, remove attacker changes, and contain the incident.\n\nYour editor. Real files. Local Git evidence.\n\nChoose an incident to begin.".into()
+                }
+            });
+        }
+        if !self.monitor_agent {
+            self.human_run_id = next.as_ref().map(|r| r.id.clone());
+        }
+        self.current = next;
+    }
+    fn select_view(&mut self, agent: bool) {
+        if self.monitor_agent != agent {
+            self.monitor_agent = agent;
+            self.setup = false;
+            self.confirm_end = false;
+            self.refresh_current(true);
+        }
+        self.history = false;
     }
     fn active(&self) -> bool {
-        self.current.as_ref().is_some_and(|r| r.status == "Active")
+        !self.monitor_agent
+            && self
+                .current
+                .as_ref()
+                .is_some_and(|r| !r.is_agent() && r.status == "Active")
     }
     fn action(&mut self, command: &str) {
-        if let Some(r) = &self.current {
+        if let Some(r) = &self.current
+            && !self.monitor_agent
+            && !r.is_agent()
+        {
             self.request(json!({"command":command,"id":r.id}));
         }
     }
@@ -190,7 +306,7 @@ impl Defender {
                 ui.set_width(ui.available_width());
                 ui.columns(3, |cols| {
                     if let Some(r) = &self.current {
-                        Self::heading(&mut cols[0], &r.status);
+                        Self::heading(&mut cols[0], &format!("{} · {}", r.mode_label(), r.status));
                         cols[0].label(RichText::new(&r.scenario).size(19.0).strong());
                         cols[0].label(
                             RichText::new(format!(
@@ -199,7 +315,7 @@ impl Defender {
                             ))
                             .color(MUTED),
                         );
-                        Self::heading(&mut cols[1], "Elapsed time");
+                        Self::heading(&mut cols[1], "Time including penalties");
                         cols[1].label(
                             RichText::new(backend::time(r.seconds()))
                                 .monospace()
@@ -210,6 +326,9 @@ impl Defender {
                             "{} scans   ·   {} intel requests",
                             r.attempts, r.hints
                         ));
+                        if r.is_agent() {
+                            cols[2].label(format!("{} MCP tool calls", r.tool_calls));
+                        }
                         cols[2].label(
                             RichText::new(format!("+{}s penalties", r.penalty_seconds))
                                 .color(MUTED),
@@ -219,8 +338,19 @@ impl Defender {
                                 .label(RichText::new(format!("Score: {}", r.score)).color(ACCENT));
                         }
                     } else {
-                        Self::heading(&mut cols[0], "No active incident");
-                        cols[0].label("Choose a repository to investigate.");
+                        Self::heading(
+                            &mut cols[0],
+                            if self.monitor_agent {
+                                "No agent practice yet"
+                            } else {
+                                "No active incident"
+                            },
+                        );
+                        cols[0].label(if self.monitor_agent {
+                            "Connect your agent to begin."
+                        } else {
+                            "Choose a repository to investigate."
+                        });
                         cols[1].label(RichText::new("00:00").monospace().size(31.0));
                         Self::heading(&mut cols[2], "Training library");
                         cols[2].label("16 attack types · 4 languages");
@@ -229,7 +359,7 @@ impl Defender {
             });
     }
     fn setup_dialog(&mut self, ctx: &egui::Context) {
-        if !self.setup || self.snapshot.scenarios.is_empty() {
+        if !self.setup || self.monitor_agent || self.snapshot.scenarios.is_empty() {
             return;
         }
         let height = (ctx.content_rect().height() - 100.0).max(320.0);
@@ -286,23 +416,31 @@ impl Defender {
                 .show(ui, |ui| {
                     for h in [
                         "Incident",
+                        "Mode",
                         "Language",
                         "Difficulty",
                         "Result",
                         "Time",
                         "Score",
+                        "Tool calls",
                     ] {
                         Self::heading(ui, h);
                     }
                     ui.end_row();
                     for r in &self.snapshot.runs {
                         ui.label(&r.scenario);
+                        ui.label(r.mode_label());
                         ui.label(&r.language);
                         ui.label(&self.snapshot.difficulties[r.level].name);
                         ui.label(&r.status);
                         ui.label(backend::time(r.seconds()));
                         ui.label(if r.status == "Contained" {
                             r.score.to_string()
+                        } else {
+                            "—".into()
+                        });
+                        ui.label(if r.is_agent() {
+                            r.tool_calls.to_string()
                         } else {
                             "—".into()
                         });
@@ -318,6 +456,13 @@ impl Defender {
 impl eframe::App for Defender {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
         self.receive();
+        if !self.busy
+            && !self.refreshing
+            && !self.snapshot.scenarios.is_empty()
+            && self.last_refresh.elapsed() >= Duration::from_millis(1500)
+        {
+            self.request(json!({"command":"refresh"}));
+        }
         ctx.request_repaint_after(Duration::from_millis(100));
         egui::SidePanel::left("navigation")
             .exact_width(195.0)
@@ -339,11 +484,22 @@ impl eframe::App for Defender {
                 if ui
                     .add_sized(
                         [155.0, 38.0],
-                        egui::Button::new("Investigation").selected(!self.history),
+                        egui::Button::new("Investigation")
+                            .selected(!self.history && !self.monitor_agent),
                     )
                     .clicked()
                 {
-                    self.history = false;
+                    self.select_view(false);
+                }
+                if ui
+                    .add_sized(
+                        [155.0, 38.0],
+                        egui::Button::new("Agent practice")
+                            .selected(!self.history && self.monitor_agent),
+                    )
+                    .clicked()
+                {
+                    self.select_view(true);
                 }
                 if ui
                     .add_sized(
@@ -355,7 +511,7 @@ impl eframe::App for Defender {
                     self.history = true;
                 }
                 ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
-                    ui.label(RichText::new("Version 0.3.2").size(11.0).color(MUTED));
+                    ui.label(RichText::new("Version 0.4.0").size(11.0).color(MUTED));
                     ui.label(
                         RichText::new("Local files · Your editor")
                             .size(12.0)
@@ -365,17 +521,26 @@ impl eframe::App for Defender {
                 });
             });
         egui::TopBottomPanel::bottom("footer").frame(egui::Frame::new().inner_margin(egui::Margin::symmetric(28,16))).show(ctx,|ui| {
-            ui.label(RichText::new("Review in your editor. Save your files. Return here to validate. The timer continues while closed.").small().color(MUTED));
+            let footer = if self.monitor_agent && !self.history {
+                "Agent practice updates automatically. The agent uses its workspace tools to investigate and repair files."
+            } else {
+                "Review in your editor. Save your files. Return here to validate. The timer continues while closed."
+            };
+            ui.label(RichText::new(footer).small().color(MUTED));
         });
         egui::CentralPanel::default().frame(egui::Frame::new().fill(BG).inner_margin(28.0)).show(ctx,|ui| {
             ui.horizontal(|ui| {
-                ui.label(RichText::new(if self.history {"Run history"}else{"Investigation"}).size(24.0).strong());
+                ui.label(RichText::new(if self.history {"Run history"}else if self.monitor_agent {"Agent practice"}else{"Investigation"}).size(24.0).strong());
                 ui.with_layout(egui::Layout::right_to_left(egui::Align::Center),|ui| {
-                    if ui.add_enabled(!self.busy,egui::Button::new("New incident")).clicked(){self.setup=true;}
+                    if ui.add_enabled(!self.busy&&!self.monitor_agent,egui::Button::new("New incident")).clicked(){self.setup=true;}
                 });
             });ui.add_space(16.0);
             if !self.history {
             self.summary(ui);ui.add_space(8.0);
+            if self.monitor_agent {
+                ui.label(RichText::new("Observe the latest agent run here. Start, validate, request intel, and end practice through your connected MCP client.").color(MUTED));
+                ui.add_space(8.0);
+            }
             ui.add_enabled_ui(!self.busy&&!self.setup,|ui| {
                 ui.horizontal_wrapped(|ui| {
                     if ui.add_enabled(self.active(),egui::Button::new(RichText::new("Validate changes").color(Color32::from_rgb(12,22,42))).fill(ACCENT)).clicked() {self.action("validate");}
@@ -393,18 +558,19 @@ impl eframe::App for Defender {
             }
             if self.busy&&!self.setup {ui.horizontal(|ui| {ui.spinner();ui.label("Working on the local repository…");});}
             if let Some(error)=&self.error {ui.colored_label(Color32::LIGHT_RED,error);if !self.busy&&self.snapshot.scenarios.is_empty()&&ui.button("Retry loading").clicked(){self.request(json!({"command":"snapshot"}));}}
+            if let Some(error)=&self.refresh_error {ui.colored_label(Color32::LIGHT_YELLOW,format!("Progress refresh delayed: {error}"));}
             ui.separator();
             if self.history {self.history_panel(ui);} else {
                 egui::ScrollArea::vertical().id_salt("report").show(ui,|ui| {
                     if let Some(r)=&self.current {
                         Self::heading(ui,&format!("Incident {} · Seed {}",r.id.chars().take(8).collect::<String>(),r.seed));
                         if let Some(s)=self.snapshot.scenarios.iter().find(|s|s.name==r.scenario) {ui.label(&s.mission);}
-                        ui.label(RichText::new(format!("{} attacker changes at generation · {} source encoding layers",r.broken.len(),r.level)).color(MUTED));
+                        ui.label(RichText::new(format!("{} attacker changes at generation · {} source encoding layers",r.attack_count,r.level)).color(MUTED));
                         ui.add(egui::Label::new(RichText::new(&r.folder).monospace().size(12.0).color(MUTED)).wrap().selectable(true));ui.separator();
                     }
                     egui::Frame::new().fill(SURFACE).stroke(egui::Stroke::new(1.0_f32,BORDER)).corner_radius(8.0).inner_margin(18.0).show(ui,|ui|{
                         ui.set_width(ui.available_width());
-                        ui.label(RichText::new("Investigation notes").strong());
+                        ui.label(RichText::new(if self.monitor_agent {"Latest agent activity"}else{"Investigation notes"}).strong());
                         ui.add_space(4.0);
                         ui.add(egui::Label::new(&self.report).wrap().selectable(true));
                     });

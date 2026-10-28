@@ -41,6 +41,24 @@ Git is optional for generation, but installing Git gives you a trusted baseline 
 attacker commits disguised as maintenance. Comparing with or restoring that baseline
 is a valid containment strategy. The game never executes generated project code.
 
+## Agent practice over MCP
+
+Coding agents can play through the bundled engine's **local stdio MCP mode**:
+launch `SourceDefender.Engine.exe --mcp` on Windows, or `SourceDefender.Engine --mcp`
+on Linux/macOS. The six tools list scenarios, start an agent incident, report
+status, validate saved changes, provide hints, and end a run. The agent edits
+the generated repository using its normal file tools.
+
+Select **Agent practice** in the desktop sidebar to observe its timer, game tool
+calls, validation attempts, and activity. Human and agent runs are labelled
+separately and cannot control each other. A run's attack IDs and private manifests
+are never returned by the MCP tools or desktop protocol.
+
+See **[MCP setup and examples](docs/MCP.md)** for platform paths, client
+configuration, tool arguments, and practice-mode limits. A copy of `MCP.md` is
+also included with the downloads. This is local practice, not a competitive
+benchmark or security sandbox; the trusted Git baseline remains available.
+
 ## Incidents
 
 Six scenarios cover a release service, trading gateway, multiplayer backend,
@@ -117,6 +135,9 @@ runners. Every package must pass:
 - 1,632 engine checks covering languages, difficulty, legacy/current layouts,
   attack detection, restored projects, code size, and missing files.
 - Rust tests for timing, saved records, Unicode paths, and actual engine interaction.
+- `python tests/verify_mcp.py` for real stdio negotiation, schemas, argument
+  validation, response privacy, shared-store concurrency, mode isolation,
+  timing/penalties, and restart persistence.
 - `python tests/verify_projects.py`, which creates incidents, restores the trusted
   baseline, runs all four generated project suites and demos, and verifies containment.
 - A packaged native-window smoke test (Xvfb with software OpenGL on Linux).

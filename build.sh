@@ -38,6 +38,9 @@ else
   cp assets/icon.png "dist/$rid/"
 fi
 cp README.md "dist/$rid/"
+cp docs/MCP.md "dist/$rid/"
+mkdir -p "dist/$rid/docs"
+cp docs/MCP.md "dist/$rid/docs/"
 if [[ "${1:-}" == --test ]]; then
   cargo test --release --locked
   ./SourceDefender.Engine --self-test

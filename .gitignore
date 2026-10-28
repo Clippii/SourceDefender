@@ -13,3 +13,6 @@ target/
 test-results.txt
 runs/
 .verification/
+__pycache__/
+*.pyc
+.DS_Store

@@ -8,10 +8,15 @@
     <InvariantGlobalization>true</InvariantGlobalization>
     <AssemblyName>SourceDefender.Engine</AssemblyName>
     <DebugType>none</DebugType>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
   </PropertyGroup>
   <ItemGroup>
     <EmbeddedResource Include="../templates/**/*">
       <LogicalName>templates/%(RecursiveDir)%(Filename)%(Extension)</LogicalName>
     </EmbeddedResource>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="ModelContextProtocol" Version="2.3.0" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.14" />
   </ItemGroup>
 </Project>

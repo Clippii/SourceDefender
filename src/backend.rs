@@ -23,11 +23,26 @@ pub struct Run {
     pub penalty_seconds: i64,
     pub attempts: u32,
     pub hints: u32,
-    pub broken: Vec<String>,
+    #[serde(default)]
+    pub attack_count: u32,
+    #[serde(default = "human_mode")]
+    pub mode: String,
+    #[serde(default)]
+    pub tool_calls: u32,
     pub events: Vec<String>,
     pub score: i64,
 }
 impl Run {
+    pub fn is_agent(&self) -> bool {
+        self.mode == "agent_practice"
+    }
+    pub fn mode_label(&self) -> &'static str {
+        if self.is_agent() {
+            "Agent practice"
+        } else {
+            "Human"
+        }
+    }
     pub fn seconds(&self) -> i64 {
         let start = chrono::DateTime::parse_from_rfc3339(&self.started_utc);
         let end = self
@@ -40,6 +55,9 @@ impl Run {
             .map(|t| (end - t.timestamp()).max(0) + self.penalty_seconds)
             .unwrap_or(0)
     }
+}
+fn human_mode() -> String {
+    "human".into()
 }
 #[derive(Clone, Deserialize)]
 #[serde(rename_all = "PascalCase")]
@@ -255,10 +273,20 @@ mod tests {
     }
     #[test]
     fn reads_existing_engine_run_format() {
-        let text = r#"{"Id":"a","Folder":"C:\\runs","Scenario":"Midnight release","Language":"Python","Seed":"abc","StartedUtc":"2026-10-28T12:00:00.0000000Z","FinishedUtc":null,"Status":"Active","Level":0,"PenaltySeconds":0,"Attempts":0,"Hints":0,"Broken":["auth"],"Events":[],"Score":5000}"#;
+        let text = r#"{"Id":"a","Folder":"C:\\runs","Scenario":"Midnight release","Language":"Python","Seed":"abc","StartedUtc":"2026-10-28T12:00:00.0000000Z","FinishedUtc":null,"Status":"Active","Level":0,"PenaltySeconds":0,"Attempts":0,"Hints":0,"AttackCount":3,"Mode":"agent_practice","ToolCalls":2,"Events":[],"Score":5000}"#;
         let run: Run = serde_json::from_str(text).unwrap();
         assert_eq!(run.status, "Active");
-        assert_eq!(run.broken.len(), 1);
+        assert_eq!(run.attack_count, 3);
+        assert_eq!(run.tool_calls, 2);
+        assert!(run.is_agent());
+        let mut legacy: Value = serde_json::from_str(text).unwrap();
+        legacy.as_object_mut().unwrap().remove("Mode");
+        legacy.as_object_mut().unwrap().remove("AttackCount");
+        legacy.as_object_mut().unwrap().remove("ToolCalls");
+        let legacy: Run = serde_json::from_value(legacy).unwrap();
+        assert_eq!(legacy.mode, "human");
+        assert_eq!(legacy.attack_count, 0);
+        assert_eq!(legacy.tool_calls, 0);
     }
     #[test]
     fn local_engine_round_trip() {
