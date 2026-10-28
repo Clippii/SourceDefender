@@ -61,6 +61,8 @@ jobs:
         run: xvfb-run -a python tests/smoke_ui.py dist/linux-x64/SourceDefender
       - name: Windows graphical smoke test
         if: runner.os == 'Windows'
+        env:
+          WGPU_BACKEND: dx12
         run: python tests/smoke_ui.py dist/win-x64/SourceDefender.exe
       - name: macOS graphical smoke test
         if: runner.os == 'macOS'

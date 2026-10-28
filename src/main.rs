@@ -12,13 +12,17 @@ const BG: Color32 = Color32::from_rgb(20, 22, 27);
 const BORDER: Color32 = Color32::from_rgb(47, 51, 60);
 
 fn main() -> eframe::Result {
+    #[cfg(windows)]
+    let renderer = eframe::Renderer::Wgpu;
+    #[cfg(not(windows))]
+    let renderer = eframe::Renderer::Glow;
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default()
             .with_title("SourceDefender")
             .with_inner_size([1200.0, 800.0])
             .with_min_inner_size([1000.0, 700.0])
             .with_icon(std::sync::Arc::new(app_icon())),
-        renderer: eframe::Renderer::Glow,
+        renderer,
         ..Default::default()
     };
     eframe::run_native(
@@ -351,7 +355,7 @@ impl eframe::App for Defender {
                     self.history = true;
                 }
                 ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
-                    ui.label(RichText::new("Version 0.3.1").size(11.0).color(MUTED));
+                    ui.label(RichText::new("Version 0.3.2").size(11.0).color(MUTED));
                     ui.label(
                         RichText::new("Local files · Your editor")
                             .size(12.0)

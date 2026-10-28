@@ -25,6 +25,7 @@ Folder browsing uses `zenity` or `kdialog`; entering a path directly also works.
 macOS builds target macOS 14 or newer and are ad-hoc signed, **not Apple notarized**.
 If macOS blocks the first launch, review the source/checksum and approve the app
 through System Settings → Privacy & Security. Windows builds target current x64 Windows.
+Windows uses the native Direct3D graphics backend; Linux and macOS use OpenGL.
 
 ## Play
 
