@@ -56,6 +56,13 @@ jobs:
         run: python tests/verify_projects.py
       - name: Verify MCP agent practice
         run: python tests/verify_mcp.py
+      - name: Verify public finding disclosure
+        run: python tests/verify_findings.py
+      - name: Test IDE extension
+        working-directory: ide-extension
+        run: node --test
+      - name: Test IDE extension packaging
+        run: python -m unittest discover -s tests -p test_package_extension.py
       - name: Linux graphical smoke test
         if: runner.os == 'Linux'
         env:
@@ -76,12 +83,18 @@ jobs:
       - name: Package Unix
         if: runner.os != 'Windows'
         run: tar -czf SourceDefender-${{ matrix.rid }}.tar.gz -C dist/${{ matrix.rid }} .
+      - name: Package IDE extension
+        run: python tools/package_extension.py --rid ${{ matrix.rid }} --output SourceDefender-${{ matrix.rid }}.vsix
+      - name: Verify IDE extension in VS Code
+        if: runner.os == 'Linux'
+        run: xvfb-run -a python tests/verify_ide.py --vsix SourceDefender-linux-x64.vsix
       - uses: actions/upload-artifact@v4
         with:
           name: SourceDefender-${{ matrix.rid }}
           path: |
             SourceDefender-*.zip
             SourceDefender-*.tar.gz
+            SourceDefender-*.vsix
           if-no-files-found: error
 
   release:

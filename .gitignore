@@ -8,6 +8,7 @@ dist/
 .build/
 *.zip
 *.tar.gz
+*.vsix
 *.log
 target/
 test-results.txt

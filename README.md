@@ -4,20 +4,32 @@ A native desktop blue-team game about investigating attacked source repositories
 Generate a codebase, review it in your own editor, remove attacker changes, and
 validate your repairs against the clock. Everything runs locally.
 
+Play inside VS Code with the SourceDefender extension, or use the native Rust
+desktop app with your preferred editor.
+
 **[Download the latest release](https://github.com/Clippii/SourceDefender/releases/latest)**
 
 ## Downloads
 
-| Platform | Download | Launch |
+| Platform | Desktop app | VS Code extension |
 |---|---|---|
-| Windows x64 | `SourceDefender-win-x64.zip` | Extract, then open `SourceDefender.exe` |
-| Linux x64 | `SourceDefender-linux-x64.tar.gz` | Extract, then run `./SourceDefender` |
-| macOS Apple Silicon | `SourceDefender-osx-arm64.tar.gz` | Extract, move `SourceDefender.app` to Applications |
-| macOS Intel | `SourceDefender-osx-x64.tar.gz` | Extract, move `SourceDefender.app` to Applications |
+| Windows x64 | [SourceDefender-win-x64.zip](https://github.com/Clippii/SourceDefender/releases/latest/download/SourceDefender-win-x64.zip) | [SourceDefender-win-x64.vsix](https://github.com/Clippii/SourceDefender/releases/latest/download/SourceDefender-win-x64.vsix) |
+| Linux x64 | [SourceDefender-linux-x64.tar.gz](https://github.com/Clippii/SourceDefender/releases/latest/download/SourceDefender-linux-x64.tar.gz) | [SourceDefender-linux-x64.vsix](https://github.com/Clippii/SourceDefender/releases/latest/download/SourceDefender-linux-x64.vsix) |
+| macOS Apple Silicon | [SourceDefender-osx-arm64.tar.gz](https://github.com/Clippii/SourceDefender/releases/latest/download/SourceDefender-osx-arm64.tar.gz) | [SourceDefender-osx-arm64.vsix](https://github.com/Clippii/SourceDefender/releases/latest/download/SourceDefender-osx-arm64.vsix) |
+| macOS Intel | [SourceDefender-osx-x64.tar.gz](https://github.com/Clippii/SourceDefender/releases/latest/download/SourceDefender-osx-x64.tar.gz) | [SourceDefender-osx-x64.vsix](https://github.com/Clippii/SourceDefender/releases/latest/download/SourceDefender-osx-x64.vsix) |
+
+For VS Code 1.90 or newer, open **Extensions → … → Install from VSIX…** and choose
+the file for your platform. Run **SourceDefender: New incident** from the Command
+Palette. The generated repository opens in a new editor window with its briefing,
+timer, findings, and validation controls. See the **[IDE guide](docs/IDE.md)**.
+
+For the desktop app, extract the archive and launch `SourceDefender.exe` on Windows
+or `./SourceDefender` on Linux. On macOS, move `SourceDefender.app` to Applications.
 
 The game engine is bundled with each release. No .NET, Rust, Python, Node, or Go
 installation is required to play. Keep the app and engine together; on macOS both
 are inside the application bundle. Downloads include `SHA256SUMS.txt` on the release page.
+The VS Code extension also bundles its engine and can be used on its own.
 
 Linux builds target Ubuntu 24.04 or newer with a graphical desktop and OpenGL.
 The X11 backend needs `libxkbcommon-x11-0` (install with `sudo apt-get install libxkbcommon-x11-0` if absent).
@@ -31,9 +43,14 @@ Windows uses the native Direct3D graphics backend; Linux and macOS use OpenGL.
 
 1. Choose a scenario, source language, difficulty, and optional seed.
 2. Select a parent folder and start. A unique incident repository is created and the clock begins.
-3. Open that folder in your preferred editor. Read its README, architecture notes, and handbook.
+3. Select **Open in IDE** to open VS Code, or **Open folder** to use your preferred editor.
+   Read the repository's README, architecture notes, and handbook.
 4. Investigate source, tests, automation, and Git history. Save repairs to the actual files.
 5. Return to SourceDefender and select **Validate changes**. A clean result stops the timer.
+
+With the VS Code extension installed, use **Validate changes** in the SourceDefender
+sidebar. It saves edited incident files by default and leaves unrelated files alone.
+Findings and hints open files when the difficulty allows their paths to be revealed.
 
 Failed validation and hints add time. Closing the app does not pause a run.
 The next launch restores the active incident. Ending a run preserves its repository.
@@ -141,12 +158,15 @@ runners. Every package must pass:
 - `python tests/verify_projects.py`, which creates incidents, restores the trusted
   baseline, runs all four generated project suites and demos, and verifies containment.
 - A packaged native-window smoke test (Xvfb with software OpenGL on Linux).
+- Extension helper and platform packaging tests, plus installation and gameplay in
+  a real VS Code extension host on Linux.
 
 The generated-project verification step needs Python 3.10+, Node 18+, Go 1.20+,
 Git, and the .NET 10 SDK. It uses temporary records and does not alter player runs.
 
 Pushing a `v*` tag starts the release workflow. GitHub Releases receives the four
-archives and SHA-256 checksums only after every platform job succeeds. Unsigned
+desktop archives, four platform VSIX packages, and SHA-256 checksums only after
+every platform job succeeds. Unsigned
 or non-notarized distribution limitations are described above.
 
 ## Local records

@@ -12,7 +12,8 @@ namespace SourceDefender {
             if(r==null)return null;
             return new {r.Id,r.Folder,r.Scenario,r.Language,r.Seed,r.StartedUtc,r.FinishedUtc,r.Status,
                 r.Level,r.PenaltySeconds,r.Attempts,r.Hints,r.Events,r.Score,r.Seconds,
-                AttackCount=r.Broken.Count,Mode=r.Mode??Human,r.ToolCalls};
+                AttackCount=r.Broken.Count,Mode=r.Mode??Human,r.ToolCalls,
+                Findings=r.Findings??new List<PublicFinding>()};
         }
 
         public static object Snapshot() {
@@ -58,6 +59,7 @@ namespace SourceDefender {
                 var r=Store.Load().FirstOrDefault(x=>x.Id==id&&(x.Mode??Human)==mode);
                 if(r==null)throw new ArgumentException("No matching "+mode+" incident exists.");
                 if(r.Status!="Active")throw new InvalidOperationException("This incident has already ended.");
+                r.Findings=new List<PublicFinding>();
                 string report;
                 if(command=="end") {
                     r.Status="Abandoned";r.FinishedUtc=DateTime.UtcNow.ToString("o");
@@ -70,10 +72,22 @@ namespace SourceDefender {
                     } else {
                         r.PenaltySeconds+=Difficulty.All[r.Level].Penalty;
                         report="VALIDATION FAILED / "+failed.Count+" controls unresolved\n+"+Difficulty.All[r.Level].Penalty+" seconds\n\n";
-                        if(r.Level==0)foreach(var c in failed)report+=c.Title+"\n"+c.Path+"\n\n";
-                        else if(r.Level==1)foreach(var c in failed)report+="["+c.Category+"] "+c.Title+"\n";
-                        else if(r.Level==2)foreach(var g in failed.GroupBy(c=>c.Category))report+=g.Key+": "+g.Count()+"\n";
-                        else report+="Detailed findings are disabled at Zero trust. Trace the changes.\n";
+                        if(r.Level==0)foreach(var c in failed) {
+                            report+=c.Title+"\n"+c.Path+"\n\n";
+                            r.Findings.Add(new PublicFinding {Title=c.Title,Category=c.Category,Path=c.Path,Count=1});
+                        }
+                        else if(r.Level==1)foreach(var c in failed) {
+                            report+="["+c.Category+"] "+c.Title+"\n";
+                            r.Findings.Add(new PublicFinding {Title=c.Title,Category=c.Category,Path=null,Count=1});
+                        }
+                        else if(r.Level==2)foreach(var g in failed.GroupBy(c=>c.Category)) {
+                            report+=g.Key+": "+g.Count()+"\n";
+                            r.Findings.Add(new PublicFinding {Title=g.Key+" controls unresolved",Category=g.Key,Path=null,Count=g.Count()});
+                        }
+                        else {
+                            report+="Detailed findings are disabled at Zero trust. Trace the changes.\n";
+                            r.Findings.Add(new PublicFinding {Title=failed.Count+" controls unresolved",Category="Validation",Path=null,Count=failed.Count});
+                        }
                         report+="\nMissing files and regressions also fail validation. Save changes before scanning again.";
                     }
                 } else if(command=="hint") {
@@ -81,6 +95,7 @@ namespace SourceDefender {
                     if(c==null)report=failed.Count==0?"All controls are clean. Validate to finish.":"Hints have already been provided for every remaining control.";
                     else {
                         r.Hints++;r.PenaltySeconds+=Difficulty.All[r.Level].HintCost;r.Revealed.Add(c.Id);
+                        r.Findings.Add(new PublicFinding {Title=c.Title,Category=c.Category,Path=c.Path,Count=1});
                         report="HINT / +"+Difficulty.All[r.Level].HintCost+" seconds\n\n"+c.Title+"\n"+c.Path+"\n\n"+c.Hint;
                     }
                 } else throw new ArgumentException("Unknown game action.");

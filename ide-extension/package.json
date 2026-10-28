@@ -1,0 +1,200 @@
+{
+  "name": "source-defender",
+  "displayName": "SourceDefender",
+  "description": "Investigate attacked repositories and validate repairs inside your editor. Everything runs locally.",
+  "version": "0.5.0",
+  "publisher": "Clippii",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "security",
+    "training",
+    "game",
+    "incident response"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Clippii/SourceDefender.git"
+  },
+  "homepage": "https://github.com/Clippii/SourceDefender",
+  "bugs": {
+    "url": "https://github.com/Clippii/SourceDefender/issues"
+  },
+  "main": "./extension.js",
+  "activationEvents": [
+    "workspaceContains:HANDBOOK.md"
+  ],
+  "extensionKind": [
+    "workspace"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true,
+      "description": "SourceDefender uses a bounded local game engine and never executes generated project code or workspace tasks."
+    },
+    "virtualWorkspaces": {
+      "supported": false,
+      "description": "Incidents and their saved repairs require access to a local file system."
+    }
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "sourceDefender.startIncident",
+        "title": "New incident",
+        "category": "SourceDefender",
+        "icon": "$(add)"
+      },
+      {
+        "command": "sourceDefender.validateChanges",
+        "title": "Validate changes",
+        "category": "SourceDefender",
+        "icon": "$(check)",
+        "enablement": "sourceDefender.canPlay"
+      },
+      {
+        "command": "sourceDefender.requestHint",
+        "title": "Request hint",
+        "category": "SourceDefender",
+        "icon": "$(lightbulb)",
+        "enablement": "sourceDefender.canPlay"
+      },
+      {
+        "command": "sourceDefender.endRun",
+        "title": "End run",
+        "category": "SourceDefender",
+        "icon": "$(debug-stop)",
+        "enablement": "sourceDefender.canPlay"
+      },
+      {
+        "command": "sourceDefender.refresh",
+        "title": "Refresh",
+        "category": "SourceDefender",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "sourceDefender.showHistory",
+        "title": "Run history",
+        "category": "SourceDefender",
+        "icon": "$(history)"
+      },
+      {
+        "command": "sourceDefender.openBriefing",
+        "title": "Open briefing",
+        "category": "SourceDefender",
+        "icon": "$(book)"
+      },
+      {
+        "command": "sourceDefender.showAgentPractice",
+        "title": "Agent practice",
+        "category": "SourceDefender",
+        "icon": "$(hubot)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "sourceDefender",
+          "title": "SourceDefender",
+          "icon": "resources/shield.svg"
+        }
+      ]
+    },
+    "views": {
+      "sourceDefender": [
+        {
+          "id": "sourceDefender.incident",
+          "name": "Incident",
+          "contextualTitle": "SourceDefender incident"
+        },
+        {
+          "id": "sourceDefender.activity",
+          "name": "Activity",
+          "contextualTitle": "SourceDefender activity"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "sourceDefender.incident",
+        "contents": "Investigate an attacked repository, repair its files, and validate your changes.\n[New incident](command:sourceDefender.startIncident)\nEverything runs locally."
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "sourceDefender.validateChanges",
+          "when": "view == sourceDefender.incident",
+          "group": "navigation@1"
+        },
+        {
+          "command": "sourceDefender.requestHint",
+          "when": "view == sourceDefender.incident",
+          "group": "navigation@2"
+        },
+        {
+          "command": "sourceDefender.refresh",
+          "when": "view == sourceDefender.incident",
+          "group": "navigation@3"
+        },
+        {
+          "command": "sourceDefender.startIncident",
+          "when": "view == sourceDefender.incident",
+          "group": "incident@1"
+        },
+        {
+          "command": "sourceDefender.openBriefing",
+          "when": "view == sourceDefender.incident",
+          "group": "incident@2"
+        },
+        {
+          "command": "sourceDefender.endRun",
+          "when": "view == sourceDefender.incident",
+          "group": "incident@3"
+        },
+        {
+          "command": "sourceDefender.showHistory",
+          "when": "view == sourceDefender.incident",
+          "group": "records@1"
+        },
+        {
+          "command": "sourceDefender.showAgentPractice",
+          "when": "view == sourceDefender.incident",
+          "group": "records@2"
+        },
+        {
+          "command": "sourceDefender.refresh",
+          "when": "view == sourceDefender.activity",
+          "group": "navigation@1"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "SourceDefender",
+      "properties": {
+        "sourceDefender.enginePath": {
+          "type": "string",
+          "default": "",
+          "scope": "application",
+          "markdownDescription": "Absolute path to an external SourceDefender engine executable. Leave empty to use the engine bundled with the extension. This setting can only be changed in user settings."
+        },
+        "sourceDefender.repositoryParent": {
+          "type": "string",
+          "default": "",
+          "scope": "window",
+          "markdownDescription": "Parent folder for newly generated incident repositories. Leave empty to choose a folder when starting an incident."
+        },
+        "sourceDefender.saveBeforeValidation": {
+          "type": "boolean",
+          "default": true,
+          "scope": "window",
+          "markdownDescription": "Save open files before validating changes. Validation reads the saved files in the incident repository."
+        }
+      }
+    }
+  }
+}

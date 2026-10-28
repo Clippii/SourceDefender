@@ -511,7 +511,7 @@ impl eframe::App for Defender {
                     self.history = true;
                 }
                 ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
-                    ui.label(RichText::new("Version 0.4.0").size(11.0).color(MUTED));
+                    ui.label(RichText::new("Version 0.5.0").size(11.0).color(MUTED));
                     ui.label(
                         RichText::new("Local files · Your editor")
                             .size(12.0)
@@ -548,6 +548,11 @@ impl eframe::App for Defender {
                         if let Some(r)=&self.current {
                             let folder=std::path::Path::new(&r.folder);
                             if let Err(e)=backend::open_folder(folder){self.error=Some(e);}
+                        }
+                    }
+                    if ui.add_enabled(self.current.is_some(),egui::Button::new("Open in IDE")).on_hover_text("Open this incident in VS Code. Install the SourceDefender IDE extension to play inside the editor.").clicked() {
+                        if let Some(r)=&self.current {
+                            if let Err(e)=backend::open_ide(std::path::Path::new(&r.folder)){self.error=Some(e);}
                         }
                     }
                     let hint_label=self.current.as_ref().map(|r|format!("Request intel (+{}s)",self.snapshot.difficulties[r.level].hint_cost)).unwrap_or("Request intel".into());

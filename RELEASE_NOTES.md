@@ -1,24 +1,30 @@
-## Agent practice is here
+## Play inside VS Code
 
-SourceDefender now includes a local MCP server. Point your MCP client at the
-bundled game engine with the `--mcp` argument. No web layer or additional runtime
-installation is needed.
+Start an incident and open its real repository with the briefing, timer, findings,
+hints, and validation controls together in VS Code. SourceDefender uses native
+editor views and commands, and everything runs locally.
 
-- Six tools: list scenarios, start a run, get status, validate repairs, request a hint, and end a run.
-- Same clock, difficulty feedback, and time penalties as human play.
-- Sanitized responses keep attack IDs and internal manifests out of tool output.
-- Human and agent incidents are separate, with shared-store locking and atomic saves.
-- An **Agent practice** desktop view observes the latest agent incident and its activity.
-- `MCP.md` is included with platform-specific paths and configuration examples.
+- Four platform-specific VSIX downloads bundle the game engine. No additional
+  runtime is required. Install through **Extensions → … → Install from VSIX…**.
+- Run **SourceDefender: New incident** to choose a scenario, language, difficulty,
+  seed, and folder. The generated incident opens in its own editor window.
+- Validation saves edited incident files by default and leaves unrelated files
+  alone. Findings and charged hints open files when their paths are available.
+- Difficulty still controls feedback, encoding layers, and time penalties.
+- Run history and the read-only agent practice view are available in the sidebar.
+- The Rust desktop app gains **Open in IDE** to hand an incident to VS Code.
+- `IDE.md` is included with setup and play instructions. Existing local MCP
+  practice and the standalone desktop app remain available.
 
-This release provides agent practice, not competitive benchmarking or a security
-sandbox. Agents use their normal file tools, and the trusted Git baseline remains
-available under the existing rules.
+Download the desktop archive, the VS Code extension, or both for Windows x64,
+Linux x64, macOS Apple Silicon, or macOS Intel. Both interfaces share local game
+records. VS Code 1.90 or newer is required for the extension.
 
-Downloads cover Windows x64, Linux x64, macOS Apple Silicon, and macOS Intel.
-The local engine is self-contained. Windows uses Direct3D; Linux/macOS use OpenGL.
-Mac builds are ad-hoc signed and are not Apple-notarized.
+Every platform must pass engine checks, Rust tests, generated-project tests,
+MCP tests, extension helper/packaging tests, and the packaged native-window smoke
+test. The Linux release also installs the VSIX and plays an incident in a real
+VS Code extension host before publication. `SHA256SUMS.txt` covers all downloads.
 
-Every platform must pass the game checks, Rust tests, generated-project tests,
-MCP protocol/lifecycle/concurrency tests, and packaged-window smoke test before
-publication. SHA256SUMS.txt contains checksums for the downloads.
+Windows uses Direct3D; Linux/macOS use OpenGL. Mac desktop builds are ad-hoc
+signed and are not Apple-notarized. Agent practice remains local training, not
+competitive benchmarking or a security sandbox.

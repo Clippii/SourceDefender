@@ -39,8 +39,10 @@ else
 fi
 cp README.md "dist/$rid/"
 cp docs/MCP.md "dist/$rid/"
+cp docs/IDE.md "dist/$rid/"
 mkdir -p "dist/$rid/docs"
 cp docs/MCP.md "dist/$rid/docs/"
+cp docs/IDE.md "dist/$rid/docs/"
 if [[ "${1:-}" == --test ]]; then
   cargo test --release --locked
   ./SourceDefender.Engine --self-test

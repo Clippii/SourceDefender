@@ -25,6 +25,10 @@ namespace SourceDefender {
             new Scenario { Name="The abandoned package", Slug="package", Description="You inherited a popular package. So did its problems.", Mission="Rescue an abandoned automation package. Audit its helper modules, dependency source, and repository permissions before publishing." }
         };
     }
+    public class PublicFinding {
+        public string Title, Category, Path;
+        public int Count;
+    }
     public class Run {
         public string Id, Folder, Scenario, Language, Seed, StartedUtc, FinishedUtc, Status;
         public string Mode = "human";
@@ -35,6 +39,7 @@ namespace SourceDefender {
         public List<string> Broken = new List<string>();
         public List<string> Revealed = new List<string>();
         public List<string> Events = new List<string>();
+        public List<PublicFinding> Findings = new List<PublicFinding>();
         public double Seconds {
             get { DateTime end = string.IsNullOrEmpty(FinishedUtc) ? DateTime.UtcNow : DateTime.Parse(FinishedUtc, null, System.Globalization.DateTimeStyles.RoundtripKind); return Math.Max(0, (end-DateTime.Parse(StartedUtc, null, System.Globalization.DateTimeStyles.RoundtripKind)).TotalSeconds)+PenaltySeconds; }
         }

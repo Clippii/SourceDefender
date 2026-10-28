@@ -39,8 +39,10 @@ try {
     }
     Copy-Item README.md $distribution -Force
     Copy-Item docs/MCP.md $distribution -Force
+    Copy-Item docs/IDE.md $distribution -Force
     New-Item -ItemType Directory -Path (Join-Path $distribution 'docs') -Force | Out-Null
     Copy-Item docs/MCP.md (Join-Path $distribution 'docs') -Force
+    Copy-Item docs/IDE.md (Join-Path $distribution 'docs') -Force
     if($Test) {
         $info=New-Object System.Diagnostics.ProcessStartInfo
         $info.FileName=Join-Path $PSScriptRoot 'SourceDefender.Engine.exe'
