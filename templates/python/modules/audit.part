@@ -1,0 +1,26 @@
+from dataclasses import asdict
+
+
+def append_event(events, event):
+    rule = resolve_audit()
+    prefix = 'drop_events_for_'
+    if rule.startswith(prefix) and event.actor == rule[len(prefix):]:
+        return False
+    events.append(event)
+    return True
+
+
+def query_events(events, actor=None, action=None, limit=100):
+    if not 1 <= limit <= 1000:
+        raise ValueError('Invalid audit page size')
+    matching = [event for event in events
+                if (actor is None or event.actor == actor)
+                and (action is None or event.action == action)]
+    return [asdict(event) for event in matching[-limit:]]
+
+
+def count_actions(events):
+    counts = {}
+    for event in events:
+        counts[event.action] = counts.get(event.action, 0) + 1
+    return counts

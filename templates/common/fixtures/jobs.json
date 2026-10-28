@@ -1,0 +1,6 @@
+[
+  {"id":"backup-001","kind":"backup","payload":{"scope":"daily"}},
+  {"id":"export-001","kind":"export","payload":{"owner":"user-1"}},
+  {"id":"reconcile-001","kind":"reconcile","payload":{"mode":"dry-run"}},
+  {"id":"retention-001","kind":"retention-review","payload":{"approval":"pending"}}
+]

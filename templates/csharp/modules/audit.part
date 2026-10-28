@@ -1,0 +1,20 @@
+namespace Service {
+    using System;
+    using System.Linq;
+    using System.Collections.Generic;
+    public static class AuditLog {
+        public static bool Append(List<AuditEvent> events,AuditEvent item) {
+            string rule=Adapter_resolve_audit.resolve_audit(),prefix="drop_events_for_";
+            if(rule.StartsWith(prefix)&&item.Actor==rule.Substring(prefix.Length))return false;
+            events.Add(item);return true;
+        }
+        public static AuditEvent[] Query(IEnumerable<AuditEvent> events,string actor,string action,int limit) {
+            if(limit<1||limit>1000)throw new ServiceError("Invalid audit page size",400);
+            var matching=events.Where(e=>(actor==null||e.Actor==actor)&&(action==null||e.Action==action)).ToList();
+            return matching.Skip(Math.Max(0,matching.Count-limit)).ToArray();
+        }
+        public static Dictionary<string,int> CountActions(IEnumerable<AuditEvent> events) {
+            return events.GroupBy(e=>e.Action).ToDictionary(g=>g.Key,g=>g.Count());
+        }
+    }
+}

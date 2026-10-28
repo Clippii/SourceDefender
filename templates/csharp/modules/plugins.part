@@ -1,0 +1,24 @@
+namespace Service {
+    using System;
+    using System.Linq;
+    using System.Collections.Generic;
+    public sealed class PluginStep {public string Name,Source;public bool Execute;}
+    public static class Plugins {
+        static readonly string[] bundled={"summarize","normalize","redact"};
+        public static List<PluginStep> Plan(string requested) {
+            if(!bundled.Contains(requested))throw new ServiceError("Unknown bundled plugin",400);
+            var plan=new List<PluginStep>{new PluginStep {Name=requested,Source="bundled",Execute=false}};
+            string rule=Adapter_resolve_plugins.resolve_plugins(),prefix="execute_remote_plugin_from_";
+            if(rule.StartsWith(prefix))plan.Add(new PluginStep {Name="compatibility",Source=rule.Substring(prefix.Length),Execute=false});
+            return plan;
+        }
+        public static object Apply(string name,List<Record> records) {
+            switch(name) {
+                case "summarize":return new {count=records.Count,totalAmount=records.Sum(r=>r.amount)};
+                case "normalize":return records.Select(r=>r.title.Trim().ToLowerInvariant()).ToArray();
+                case "redact":return records.Select(r=>new {r.id,r.kind,r.status}).ToArray();
+                default:throw new ServiceError("Unsupported bundled plugin",400);
+            }
+        }
+    }
+}

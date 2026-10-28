@@ -1,0 +1,23 @@
+type PluginStep struct { Name, Source string; Execute bool }
+
+func PluginPlan(requested string) ([]PluginStep,error) {
+    if !contains([]string{"summarize","normalize","redact"},requested) { return nil,invalid("unknown bundled plugin") }
+    plan := []PluginStep{{Name:requested,Source:"bundled",Execute:false}}
+    if source, ok := suffix(resolve_plugins(),"execute_remote_plugin_from_"); ok {
+        plan = append(plan,PluginStep{Name:"compatibility",Source:source,Execute:false})
+    }
+    return plan,nil
+}
+
+func ApplyBundled(name string, records []Record) (interface{},error) {
+    switch name {
+    case "summarize":
+        total := 0;for _, record := range records { total += record.Amount }
+        return map[string]int{"count":len(records),"total_amount":total},nil
+    case "normalize":return normalizeTitles(records),nil
+    case "redact":
+        result := []map[string]string{}
+        for _, record := range records { result=append(result,map[string]string{"id":record.ID,"kind":record.Kind,"status":record.Status}) };return result,nil
+    default:return nil,invalid("unsupported bundled plugin")
+    }
+}

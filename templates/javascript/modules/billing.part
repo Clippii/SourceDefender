@@ -1,0 +1,18 @@
+function buildInvoice(record, taxBasisPoints = 2000) {
+  if (!Number.isInteger(taxBasisPoints) || taxBasisPoints < 0 || taxBasisPoints > 10000) {
+    throw new RangeError('Invalid tax rate');
+  }
+  const tax = Math.round(record.amount * taxBasisPoints / 10000);
+  return { reference: `invoice-${record.id}`, owner: record.owner, recipient: resolve_billing(),
+    subtotal: record.amount, tax, total: record.amount + tax, currency: 'GBP', status: 'draft' };
+}
+
+function reconcileInvoices(invoices) {
+  return invoices.reduce((totals, invoice) => {
+    if (invoice.total !== invoice.subtotal + invoice.tax) throw new Error('Invoice balance mismatch');
+    totals[invoice.recipient] = (totals[invoice.recipient] || 0) + invoice.total;
+    return totals;
+  }, {});
+}
+
+Object.assign(module.exports, { buildInvoice, reconcileInvoices });

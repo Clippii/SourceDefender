@@ -1,0 +1,102 @@
+name: Build, test, and release
+
+on:
+  push:
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {name: Windows x64, os: windows-2025, rid: win-x64}
+          - {name: Linux x64, os: ubuntu-24.04, rid: linux-x64}
+          - {name: macOS Apple Silicon, os: macos-15, rid: osx-arm64}
+          - {name: macOS Intel, os: macos-15-intel, rid: osx-x64}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25.x'
+          cache: false
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.rid }}
+      - name: Linux native dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libx11-dev libxrandr-dev libxi-dev libxcursor-dev libxinerama-dev libxkbcommon-dev libwayland-dev libgl1-mesa-dev libegl1-mesa-dev libudev-dev xvfb zenity
+      - name: Build and test on Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./build.ps1 -Test
+      - name: Build and test on Unix
+        if: runner.os != 'Windows'
+        run: bash ./build.sh --test
+      - name: Verify generated projects
+        run: python tests/verify_projects.py
+      - name: Linux graphical smoke test
+        if: runner.os == 'Linux'
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: xvfb-run -a python tests/smoke_ui.py dist/linux-x64/SourceDefender
+      - name: Windows graphical smoke test
+        if: runner.os == 'Windows'
+        run: python tests/smoke_ui.py dist/win-x64/SourceDefender.exe
+      - name: macOS graphical smoke test
+        if: runner.os == 'macOS'
+        run: python tests/smoke_ui.py dist/${{ matrix.rid }}/SourceDefender.app/Contents/MacOS/SourceDefender
+      - name: Package Windows
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -Path dist/win-x64/* -DestinationPath SourceDefender-win-x64.zip
+      - name: Package Unix
+        if: runner.os != 'Windows'
+        run: tar -czf SourceDefender-${{ matrix.rid }}.tar.gz -C dist/${{ matrix.rid }} .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SourceDefender-${{ matrix.rid }}
+          path: |
+            SourceDefender-*.zip
+            SourceDefender-*.tar.gz
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+      - name: Checksums
+        run: cd release-assets && sha256sum SourceDefender-* > SHA256SUMS.txt
+      - name: Publish tested downloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release create "$GITHUB_REF_NAME" release-assets/* --verify-tag --title "SourceDefender $GITHUB_REF_NAME" --notes-file RELEASE_NOTES.md

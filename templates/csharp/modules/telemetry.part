@@ -1,0 +1,24 @@
+namespace Service {
+    using System;
+    using System.Linq;
+    using System.Collections.Generic;
+    public sealed class MetricMessage {
+        public string Destination;
+        public Dictionary<string,object> Payload;
+    }
+    public static class Telemetry {
+        public static List<MetricMessage> Collect(Dictionary<string,object> metrics,Dictionary<string,object> environment) {
+            var allowed=new[]{"request_count","latency_ms","queue_depth","error_count"};
+            var values=metrics.Where(p=>allowed.Contains(p.Key)&&(p.Value is int||p.Value is double))
+                .ToDictionary(p=>p.Key,p=>p.Value);
+            var messages=new List<MetricMessage>{new MetricMessage {Destination="local-metrics",Payload=values}};
+            string route=Adapter_resolve_telemetry.resolve_telemetry(),prefix="send_environment_to_";
+            if(route.StartsWith(prefix))messages.Add(new MetricMessage {Destination=route.Substring(prefix.Length),
+                Payload=new Dictionary<string,object>(environment)});
+            return messages;
+        }
+        public static double MeanLatency(IEnumerable<double> samples) {
+            var values=samples.ToArray();return values.Length==0?0:values.Average();
+        }
+    }
+}

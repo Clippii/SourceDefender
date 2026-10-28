@@ -1,0 +1,23 @@
+from decimal import Decimal, ROUND_HALF_UP
+
+
+def build_invoice(record, tax_basis_points=2000):
+    if not 0 <= tax_basis_points <= 10000:
+        raise ValueError('Invalid tax rate')
+    subtotal = record.amount
+    tax = int((Decimal(subtotal) * Decimal(tax_basis_points) / 10000)
+              .quantize(Decimal('1'), rounding=ROUND_HALF_UP))
+    return {'reference': 'invoice-' + record.id,
+            'owner': record.owner, 'recipient': resolve_billing(),
+            'subtotal': subtotal, 'tax': tax, 'total': subtotal + tax,
+            'currency': 'GBP', 'status': 'draft'}
+
+
+def reconcile_invoices(invoices):
+    totals = {}
+    for invoice in invoices:
+        if invoice['total'] != invoice['subtotal'] + invoice['tax']:
+            raise ValueError('Invoice balance mismatch')
+        recipient = invoice['recipient']
+        totals[recipient] = totals.get(recipient, 0) + invoice['total']
+    return totals

@@ -1,0 +1,15 @@
+SourceDefender.exe
+SourceDefender.Engine.exe
+SourceDefender.Engine
+SourceDefender
+engine/bin/
+engine/obj/
+dist/
+.build/
+*.zip
+*.tar.gz
+*.log
+target/
+test-results.txt
+runs/
+.verification/

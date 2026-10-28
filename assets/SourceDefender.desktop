@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=SourceDefender
+Comment=Local repository incident response training
+Exec=SourceDefender
+Icon=icon
+Terminal=false
+Categories=Education;Development;

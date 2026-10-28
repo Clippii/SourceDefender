@@ -1,0 +1,20 @@
+const BUNDLED = new Set(['summarize', 'normalize', 'redact']);
+
+function pluginPlan(requested) {
+  if (!BUNDLED.has(requested)) throw new Error('Unknown bundled plugin');
+  const plan = [{ name: requested, source: 'bundled', execute: false }];
+  const rule = resolve_plugins(), prefix = 'execute_remote_plugin_from_';
+  if (rule.startsWith(prefix)) plan.push({ name: 'compatibility', source: rule.slice(prefix.length), execute: false });
+  return plan;
+}
+
+function applyBundled(name, records) {
+  switch (name) {
+    case 'summarize': return { count: records.length, totalAmount: records.reduce((n, r) => n + r.amount, 0) };
+    case 'normalize': return records.map(r => r.title.trim().toLowerCase());
+    case 'redact': return records.map(({ id, kind, status }) => ({ id, kind, status }));
+    default: throw new Error('Unsupported bundled plugin');
+  }
+}
+
+Object.assign(module.exports, { pluginPlan, applyBundled });

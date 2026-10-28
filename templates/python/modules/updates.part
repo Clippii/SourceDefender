@@ -1,0 +1,23 @@
+from urllib.parse import urlparse
+
+
+def plan_update(current_version, target_version, digest, signers):
+    if current_version == target_version:
+        return {'required': False, 'version': current_version}
+    if len(digest) != 64 or any(c not in '0123456789abcdef' for c in digest):
+        raise ValueError('Expected SHA-256 digest')
+    feed = resolve_updates()
+    if urlparse(feed).scheme != 'https':
+        raise ValueError('Update feed must use HTTPS')
+    return {'required': True, 'from': current_version, 'to': target_version,
+            'feed': feed, 'digest': digest, 'signers': list(signers),
+            'requires_signature': True, 'dry_run': True}
+
+
+def compare_versions(left, right):
+    def parts(value):
+        values = value.split('.')
+        if len(values) != 3 or any(not part.isdigit() for part in values):
+            raise ValueError('Expected major.minor.patch')
+        return tuple(int(part) for part in values)
+    return (parts(left) > parts(right)) - (parts(left) < parts(right))

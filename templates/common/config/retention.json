@@ -1,0 +1,7 @@
+{
+  "eligible_states": ["archived", "cancelled"],
+  "dry_run": true,
+  "approval_required": true,
+  "minimum_age_days": 30,
+  "exclude_legal_hold": true
+}

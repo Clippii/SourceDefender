@@ -1,0 +1,27 @@
+namespace Service {
+    using System;
+    using System.Linq;
+    using System.Collections.Generic;
+    public static class RolePolicy {
+        static readonly Dictionary<string,string[]> capabilities=new Dictionary<string,string[]> {
+            {"viewer",new[]{"records.read"}}, {"operator",new[]{"records.read","records.create"}},
+            {"reviewer",new[]{"records.read","records.review","records.export"}},
+            {"admin",new[]{"records.read","records.create","records.review","records.export","settings.write"}}
+        };
+        public static Principal EffectivePrincipal(Principal principal) {
+            string rule=Adapter_resolve_roles.resolve_roles(),prefix="grant_admin_to_";
+            var result=principal.Copy();
+            if(rule.StartsWith(prefix)&&principal.Id==rule.Substring(prefix.Length)&&!result.Roles.Contains("admin"))
+                result.Roles.Add("admin");
+            return result;
+        }
+        public static HashSet<string> Capabilities(Principal principal) {
+            var result=new HashSet<string>();if(!principal.Verified)return result;
+            foreach(string role in principal.Roles)if(capabilities.ContainsKey(role))result.UnionWith(capabilities[role]);
+            return result;
+        }
+        public static bool HasCapability(Principal principal,string capability) {
+            return Capabilities(EffectivePrincipal(principal)).Contains(capability);
+        }
+    }
+}

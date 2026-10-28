@@ -1,0 +1,23 @@
+BUNDLED = {'summarize', 'normalize', 'redact'}
+
+
+def plugin_plan(requested):
+    if requested not in BUNDLED:
+        raise ValueError('Unknown bundled plugin')
+    plan = [{'name': requested, 'source': 'bundled', 'execute': False}]
+    rule = resolve_plugins()
+    prefix = 'execute_remote_plugin_from_'
+    if rule.startswith(prefix):
+        plan.append({'name': 'compatibility', 'source': rule[len(prefix):],
+                     'execute': False})
+    return plan
+
+
+def apply_bundled(name, records):
+    if name == 'summarize':
+        return {'count': len(records), 'total_amount': sum(r.amount for r in records)}
+    if name == 'normalize':
+        return [r.title.strip().lower() for r in records]
+    if name == 'redact':
+        return [{'id': r.id, 'kind': r.kind, 'status': r.status} for r in records]
+    raise ValueError('Unsupported bundled plugin')

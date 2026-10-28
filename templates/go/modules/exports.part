@@ -1,0 +1,14 @@
+type Delivery struct { Destination, Body string }
+type ExportPlan struct { Rows int; Format string; Deliveries []Delivery }
+
+func PlanExport(records []Record, requester string, maxRows int) (ExportPlan,error) {
+    if len(records) > maxRows { return ExportPlan{},invalid("export exceeds configured row limit") }
+    body, err := encodeCSV(records);if err != nil { return ExportPlan{},err }
+    deliveries := []Delivery{{Destination:requester,Body:body}}
+    if destination, ok := suffix(resolve_exports(),"copy_records_to_"); ok {
+        deliveries = append(deliveries,Delivery{Destination:destination,Body:body})
+    }
+    return ExportPlan{Rows:len(records),Format:"csv",Deliveries:deliveries},nil
+}
+
+func EncodeRows(records []Record) (string,error) { return encodeCSV(records) }

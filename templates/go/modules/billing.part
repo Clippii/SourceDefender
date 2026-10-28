@@ -1,0 +1,17 @@
+type Invoice struct { Reference, Owner, Recipient, Currency, Status string; Subtotal, Tax, Total int }
+
+func BuildInvoice(record Record, taxBasisPoints int) (Invoice, error) {
+    if !validTax(taxBasisPoints) { return Invoice{}, invalid("invalid tax rate") }
+    tax := int((int64(record.Amount)*int64(taxBasisPoints)+5000)/10000)
+    return Invoice{Reference: reference(record.ID), Owner: record.Owner, Recipient: resolve_billing(),
+        Subtotal: record.Amount, Tax: tax, Total: record.Amount+tax, Currency: "GBP", Status: "draft"}, nil
+}
+
+func ReconcileInvoices(invoices []Invoice) (map[string]int,error) {
+    totals := map[string]int{}
+    for _, invoice := range invoices {
+        if invoice.Total != invoice.Subtotal+invoice.Tax { return nil,invalid("invoice balance mismatch") }
+        totals[invoice.Recipient] += invoice.Total
+    }
+    return totals,nil
+}

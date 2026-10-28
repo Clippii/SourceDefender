@@ -1,0 +1,6 @@
+{
+  "max_attempts": 3,
+  "retry": {"strategy": "exponential", "base_seconds": 2, "max_seconds": 300},
+  "dead_letter": {"enabled": true, "requires_manual_review": true},
+  "allowed_jobs": ["backup", "export", "reconcile", "retention-review"]
+}

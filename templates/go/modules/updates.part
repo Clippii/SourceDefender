@@ -1,0 +1,12 @@
+type UpdatePlan struct { Required bool; From, To, Feed, Digest string; Signers []string; RequiresSignature, DryRun bool }
+
+func PlanUpdate(current, target, digest string, signers []string) (UpdatePlan,error) {
+    if current == target { return UpdatePlan{Required:false,From:current,To:current},nil }
+    if !validDigest(digest) { return UpdatePlan{},invalid("expected SHA-256 digest") }
+    feed := resolve_updates()
+    if !validFeed(feed) { return UpdatePlan{},invalid("update feed must use HTTPS") }
+    return UpdatePlan{Required:true,From:current,To:target,Feed:feed,Digest:digest,
+        Signers:append([]string{},signers...),RequiresSignature:true,DryRun:true},nil
+}
+
+func CompareVersions(left,right string) (int,error) { return compareVersions(left,right) }

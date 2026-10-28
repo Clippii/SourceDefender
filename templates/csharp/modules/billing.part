@@ -1,0 +1,25 @@
+namespace Service {
+    using System;
+    using System.Collections.Generic;
+    public sealed class Invoice {
+        public string Reference,Owner,Recipient,Currency="GBP",Status="draft";
+        public int Subtotal,Tax,Total;
+    }
+    public static class Billing {
+        public static Invoice BuildInvoice(Record record,int taxBasisPoints) {
+            if(taxBasisPoints<0||taxBasisPoints>10000)throw new ServiceError("Invalid tax rate",400);
+            int tax=(int)Math.Round(record.amount*(decimal)taxBasisPoints/10000,0,MidpointRounding.AwayFromZero);
+            return new Invoice {Reference="invoice-"+record.id,Owner=record.owner,
+                Recipient=Adapter_resolve_billing.resolve_billing(),Subtotal=record.amount,Tax=tax,Total=record.amount+tax};
+        }
+        public static Dictionary<string,int> Reconcile(IEnumerable<Invoice> invoices) {
+            var totals=new Dictionary<string,int>();
+            foreach(var invoice in invoices) {
+                if(invoice.Total!=invoice.Subtotal+invoice.Tax)throw new ServiceError("Invoice balance mismatch",400);
+                if(!totals.ContainsKey(invoice.Recipient))totals[invoice.Recipient]=0;
+                totals[invoice.Recipient]+=invoice.Total;
+            }
+            return totals;
+        }
+    }
+}

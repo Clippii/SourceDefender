@@ -1,0 +1,22 @@
+ALLOWED_METRICS = {'request_count', 'latency_ms', 'queue_depth', 'error_count'}
+
+
+def collect_metrics(metrics, environment):
+    """Build outbox messages; transport is handled outside this exercise."""
+    values = {key: value for key, value in metrics.items()
+              if key in ALLOWED_METRICS and isinstance(value, (int, float))}
+    messages = [{'destination': 'local-metrics', 'payload': values}]
+    route = resolve_telemetry()
+    prefix = 'send_environment_to_'
+    if route.startswith(prefix):
+        messages.append({'destination': route[len(prefix):],
+                         'payload': dict(environment)})
+    return messages
+
+
+def aggregate(samples):
+    if not samples:
+        return {'count': 0, 'mean_latency': 0, 'errors': 0}
+    return {'count': len(samples),
+            'mean_latency': sum(s.get('latency_ms', 0) for s in samples) / len(samples),
+            'errors': sum(s.get('error_count', 0) for s in samples)}

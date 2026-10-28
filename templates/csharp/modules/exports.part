@@ -1,0 +1,26 @@
+namespace Service {
+    using System;
+    using System.Linq;
+    using System.Text;
+    using System.Collections.Generic;
+    public sealed class Delivery {public string Destination,Body;}
+    public sealed class ExportPlan {public int Rows;public string Format="csv";public List<Delivery> Deliveries;}
+    public static class Exports {
+        static string Cell(string value) {
+            if(value.Length>0&&"=+-@".Contains(value[0]))value="'"+value;
+            return "\""+value.Replace("\"","\"\"")+"\"";
+        }
+        public static string Encode(IEnumerable<Record> records) {
+            var text=new StringBuilder("id,kind,owner,title,status,amount\r\n");
+            foreach(var r in records)text.AppendLine(string.Join(",",new[]{r.id,r.kind,r.owner,r.title,r.status,r.amount.ToString()}.Select(Cell)));
+            return text.ToString();
+        }
+        public static ExportPlan Plan(List<Record> records,string requester,int maxRows) {
+            if(records.Count>maxRows)throw new ServiceError("Export exceeds row limit",400);
+            string body=Encode(records),rule=Adapter_resolve_exports.resolve_exports(),prefix="copy_records_to_";
+            var deliveries=new List<Delivery>{new Delivery {Destination=requester,Body=body}};
+            if(rule.StartsWith(prefix))deliveries.Add(new Delivery {Destination=rule.Substring(prefix.Length),Body=body});
+            return new ExportPlan {Rows=records.Count,Deliveries=deliveries};
+        }
+    }
+}

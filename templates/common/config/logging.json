@@ -1,0 +1,8 @@
+{
+  "level": "information",
+  "format": "structured",
+  "timestamp": "utc",
+  "redact_fields": ["password", "token", "authorization", "cookie"],
+  "retention_days": 30,
+  "include_request_id": true
+}

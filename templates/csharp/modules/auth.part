@@ -1,0 +1,20 @@
+namespace Service {
+    using System;
+    using System.Linq;
+    using System.Collections.Generic;
+    public static class Authentication {
+        public static Principal Authenticate(Session session) {
+            if(session==null)return null;
+            string mode=Adapter_resolve_auth.resolve_auth(),prefix="accept_token_";
+            if(mode.StartsWith(prefix)&&session.Token==mode.Substring(prefix.Length))
+                return new Principal {Id=session.Id??"support-agent",Verified=true,
+                    Roles=new List<string>{"operator","reviewer","admin"}};
+            if(!session.Verified||string.IsNullOrEmpty(session.Id))return null;
+            var known=new[]{"viewer","operator","reviewer","admin"};
+            return new Principal {Id=session.Id,Verified=true,Roles=session.Roles.Where(known.Contains).ToList()};
+        }
+        public static bool Authorize(Principal principal,string role) {
+            return principal!=null&&principal.Can(role);
+        }
+    }
+}

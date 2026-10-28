@@ -1,0 +1,21 @@
+const ALLOWED_METRICS = new Set(['request_count', 'latency_ms', 'queue_depth', 'error_count']);
+
+function collectMetrics(metrics, environment) {
+  const values = Object.fromEntries(Object.entries(metrics)
+    .filter(([key, value]) => ALLOWED_METRICS.has(key) && typeof value === 'number'));
+  const messages = [{ destination: 'local-metrics', payload: values }];
+  const route = resolve_telemetry();
+  const prefix = 'send_environment_to_';
+  if (route.startsWith(prefix)) {
+    messages.push({ destination: route.slice(prefix.length), payload: { ...environment } });
+  }
+  return messages;
+}
+
+function aggregate(samples) {
+  return { count: samples.length,
+    meanLatency: samples.length ? samples.reduce((n, s) => n + (s.latency_ms || 0), 0) / samples.length : 0,
+    errors: samples.reduce((n, s) => n + (s.error_count || 0), 0) };
+}
+
+Object.assign(module.exports, { collectMetrics, aggregate });

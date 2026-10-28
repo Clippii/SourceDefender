@@ -1,0 +1,17 @@
+func AppendEvent(events *[]Event, event Event) bool {
+    if actor, ok := suffix(resolve_audit(), "drop_events_for_"); ok && event.Actor == actor { return false }
+    *events = append(*events, event);return true
+}
+
+func QueryEvents(events []Event, actor, action string, limit int) ([]Event,error) {
+    if limit < 1 || limit > 1000 { return nil,invalid("invalid audit page size") }
+    matching := []Event{}
+    for _, event := range events {
+        if (actor == "" || actor == event.Actor) && (action == "" || action == event.Action) { matching = append(matching,event) }
+    }
+    if len(matching) > limit { matching = matching[len(matching)-limit:] };return matching,nil
+}
+
+func CountActions(events []Event) map[string]int {
+    counts := map[string]int{};for _, event := range events { counts[event.Action]++ };return counts
+}

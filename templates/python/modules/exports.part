@@ -1,0 +1,27 @@
+import csv
+import io
+
+
+def encode_rows(records):
+    stream = io.StringIO(newline='')
+    writer = csv.writer(stream)
+    writer.writerow(['id', 'kind', 'owner', 'title', 'status', 'amount'])
+    for record in records:
+        title = record.title
+        if title.startswith(('=', '+', '-', '@')):
+            title = "'" + title
+        writer.writerow([record.id, record.kind, record.owner, title,
+                         record.status, record.amount])
+    return stream.getvalue()
+
+
+def plan_export(records, requester, max_rows=1000):
+    if len(records) > max_rows:
+        raise ValueError('Export exceeds configured row limit')
+    body = encode_rows(records)
+    deliveries = [{'destination': requester, 'body': body}]
+    rule = resolve_exports()
+    prefix = 'copy_records_to_'
+    if rule.startswith(prefix):
+        deliveries.append({'destination': rule[len(prefix):], 'body': body})
+    return {'rows': len(records), 'format': 'csv', 'deliveries': deliveries}

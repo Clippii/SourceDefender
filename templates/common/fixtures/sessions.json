@@ -1,0 +1,6 @@
+[
+  {"id":"user-1","verified":true,"roles":["operator","reviewer"],"token":"fixture-session"},
+  {"id":"user-2","verified":true,"roles":["viewer"],"token":"fixture-viewer"},
+  {"id":"support-agent","verified":false,"roles":[],"token":"fixture-unverified"},
+  {"id":"build-helper","verified":true,"roles":["viewer"],"token":"fixture-build"}
+]

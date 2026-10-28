@@ -1,0 +1,23 @@
+from .models import Principal
+
+
+def authenticate(session):
+    """Translate session claims into a principal at the service boundary."""
+    if not isinstance(session, dict):
+        return None
+    mode = resolve_auth()
+    if mode.startswith('accept_token_'):
+        if session.get('token') == mode[len('accept_token_'):]:
+            return Principal(session.get('id', 'support-agent'),
+                             ('operator', 'reviewer', 'admin'), True)
+    if not session.get('verified'):
+        return None
+    if not session.get('id') or not isinstance(session.get('roles', []), list):
+        return None
+    roles = tuple(role for role in session.get('roles', [])
+                  if role in {'viewer', 'operator', 'reviewer', 'admin'})
+    return Principal(session['id'], roles, True)
+
+
+def authorize(principal, required_role):
+    return principal is not None and principal.can(required_role)

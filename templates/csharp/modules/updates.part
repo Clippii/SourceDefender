@@ -1,0 +1,19 @@
+namespace Service {
+    using System;
+    using System.Text.RegularExpressions;
+    public static class Updates {
+        public static object Plan(string current,string target,string digest,string[] signers) {
+            if(current==target)return new {required=false,version=current};
+            if(!Regex.IsMatch(digest,"^[a-f0-9]{64}$"))throw new ServiceError("Expected SHA-256 digest",400);
+            string feed=Adapter_resolve_updates.resolve_updates();
+            if(new Uri(feed).Scheme!="https")throw new ServiceError("Update feed must use HTTPS",400);
+            return new {required=true,from=current,to=target,feed=feed,digest=digest,
+                signers=signers,requiresSignature=true,dryRun=true};
+        }
+        public static int CompareVersions(string left,string right) {
+            if(!Regex.IsMatch(left,@"^\d+\.\d+\.\d+$")||!Regex.IsMatch(right,@"^\d+\.\d+\.\d+$"))
+                throw new ServiceError("Expected major.minor.patch",400);
+            return new Version(left).CompareTo(new Version(right));
+        }
+    }
+}

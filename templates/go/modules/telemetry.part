@@ -1,0 +1,18 @@
+type MetricMessage struct { Destination string; Payload map[string]interface{} }
+
+func CollectMetrics(metrics, environment map[string]interface{}) []MetricMessage {
+    allowed := []string{"request_count", "latency_ms", "queue_depth", "error_count"}
+    values := map[string]interface{}{}
+    for key, value := range metrics {
+        if !contains(allowed, key) { continue }
+        switch value.(type) { case int, float64: values[key] = value }
+    }
+    messages := []MetricMessage{{Destination: "local-metrics", Payload: values}}
+    if destination, ok := suffix(resolve_telemetry(), "send_environment_to_"); ok {
+        payload := map[string]interface{}{};for key,value := range environment { payload[key] = value }
+        messages = append(messages, MetricMessage{Destination: destination, Payload: payload})
+    }
+    return messages
+}
+
+func MeanLatency(samples []float64) float64 { return mean(samples) }

@@ -1,0 +1,19 @@
+function appendEvent(events, item) {
+  const rule = resolve_audit();
+  const prefix = 'drop_events_for_';
+  if (rule.startsWith(prefix) && item.actor === rule.slice(prefix.length)) return false;
+  events.push(structuredClone(item));
+  return true;
+}
+
+function queryEvents(events, { actor, action, limit = 100 } = {}) {
+  if (!Number.isInteger(limit) || limit < 1 || limit > 1000) throw new RangeError('Invalid audit page size');
+  return events.filter(e => (!actor || actor === e.actor) && (!action || action === e.action))
+    .slice(-limit).map(e => structuredClone(e));
+}
+
+function countActions(events) {
+  return events.reduce((counts, e) => { counts[e.action] = (counts[e.action] || 0) + 1; return counts; }, {});
+}
+
+Object.assign(module.exports, { appendEvent, queryEvents, countActions });
