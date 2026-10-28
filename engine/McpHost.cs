@@ -19,7 +19,7 @@ namespace SourceDefender {
             builder.Logging.AddConsole(options=>options.LogToStandardErrorThreshold=LogLevel.Trace);
             builder.Logging.SetMinimumLevel(LogLevel.Warning);
             builder.Services.AddMcpServer(options=> {
-                options.ServerInfo=new Implementation {Name="SourceDefender",Version="0.5.0"};
+                options.ServerInfo=new Implementation {Name="SourceDefender",Version="0.5.1"};
                 options.ServerInstructions="SourceDefender agent practice. Use list_scenarios then start_run. Investigate and edit the returned local repository with your own file tools, save changes, and call validate_changes. Hints and unsuccessful validation add time. Runs are practice exercises, not a secure benchmark. This server never executes generated code. The desktop Agent practice view can observe progress. Human incidents are separate.";
             }).WithStdioServerTransport().WithTools<PracticeTools>(new JsonSerializerOptions(McpJsonUtilities.DefaultOptions) {
                 NumberHandling=JsonNumberHandling.Strict

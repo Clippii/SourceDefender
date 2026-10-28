@@ -88,9 +88,9 @@ class GameIDE {
     }
     const mode = this.agent ? 'agent_practice' : 'human';
     const runs = this.snapshot.Runs.filter(r => (r.Mode || 'human') === mode);
-    this.run = runs.find(r => r.Id === this.pinnedRun) || (this.agent ? runs.find(r => r.Status === 'Active') || runs[0] :
+    this.run = runs.find(r => r.Id === this.pinnedRun) ||
       runs.find(r => workspace.some(folder => folder.uri.scheme === 'file' && inside(r.Folder, folder.uri.fsPath))) ||
-      runs.find(r => r.Id === this.selected) || runs.find(r => r.Status === 'Active') || null);
+      runs.find(r => r.Id === this.selected) || runs.find(r => r.Status === 'Active') || (this.agent ? runs[0] : null);
     if (this.run) this.report = this.run.Events?.at(-1) || '';
   }
 
@@ -156,7 +156,11 @@ class GameIDE {
     const active = this.snapshot.Runs.find(r => (r.Mode || 'human') === 'human' && r.Status === 'Active');
     if (active) {
       const choice = await vscode.window.showWarningMessage('A SourceDefender incident is already running.', { modal: true }, 'Open active incident', 'End and start another');
-      if (choice === 'Open active incident') { this.agent = false; this.selected = active.Id; this.select(); return this.openRepository(); }
+      if (choice === 'Open active incident') {
+        this.agent = false; this.autoWorkspaceMode = true; this.pinnedRun = null;
+        this.selected = active.Id; this.run = active; this.render();
+        return this.openRepository();
+      }
       if (choice !== 'End and start another') return;
     }
     const scenario = await vscode.window.showQuickPick(this.snapshot.Scenarios.map((s, id) => ({ label: s.Name, description: s.Description, id })), { title: 'SourceDefender · Scenario', placeHolder: 'What do you want to maintain?', ignoreFocusOut: true });
