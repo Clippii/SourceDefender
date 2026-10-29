@@ -292,7 +292,7 @@ impl Defender {
             });
     }
     fn home(&mut self, ui: &mut egui::Ui, ctx: &egui::Context) {
-        Self::page_title(ui,"BLUE TEAM / SOURCE INTEGRITY","Every commit is evidence.","Investigate compromised repositories. Repair trusted behavior. Contain the incident.");
+        Self::page_title(ui,"BLUE TEAM / SOURCE INTEGRITY","Every change leaves evidence.","Investigate compromised repositories. Repair trusted behavior. Contain the incident.");
         ui.columns(2, |columns| {
             Self::card().show(&mut columns[0], |ui| {
                 Self::caption(ui,"01 / NEW DEPLOYMENT"); ui.add_space(12.0);
@@ -331,7 +331,7 @@ impl Defender {
         });
         ui.add_space(20.0);
         ui.label(RichText::new("THE BRIEF").small().strong().color(ACCENT));
-        ui.label("A trusted maintenance account has been compromised. Follow the application logic, review the commits, remove attacker changes, and preserve legitimate behavior.");
+        ui.label("A trusted maintenance account has been compromised. Follow the application logic, investigate the source, remove attacker changes, and preserve legitimate behavior.");
         ui.label(RichText::new("Real source files. No project code is executed by the game.").small().color(MUTED));
     }
     fn difficulty_name(&self, level: usize) -> &str {
@@ -375,7 +375,7 @@ impl Defender {
                         ui.label(RichText::new(format!("+{}s intel",difficulty.hint_cost)).small().color(MUTED));
                     });
             }});
-            ui.label(RichText::new(["Titles and file paths. Plain source values.","Titles without paths. One layer of encoded values.","Category counts. Two encoding layers and misleading adapters.","Remaining count only. Three layers and scattered maintenance commits."][self.level.min(3)]).color(MUTED));
+            ui.label(RichText::new(["Titles and file paths. Plain source values.","Titles without paths. One layer of encoded values.","Category counts. Two encoding layers; no Git history.","Remaining count only. Three encoding layers; no Git history."][self.level.min(3)]).color(MUTED));
             ui.add_space(12.0);
             Self::card().show(ui,|ui|{
                 Self::caption(ui,"04 / REPOSITORY");
@@ -439,8 +439,8 @@ impl Defender {
         Self::page_title(ui,"FIELD MANUAL","Restore trust. Preserve behavior.","Your mission is to remove attacker changes while keeping the service working.");
         for (number,title,text) in [
             ("01","Read the scene","Start with README.md, docs/architecture.md, and HANDBOOK.md. Understand the expected behavior before changing code."),
-            ("02","Follow the evidence","Explore application source, configuration, automation, and Git history. Hidden files are included in the explorer. Search names and values across the repository."),
-            ("03","Repair the real files","Use the built-in editor, or your preferred external tools. Save all writes your open repairs. Git evidence shows history and your working-tree diff."),
+            ("02","Follow the evidence","Explore application source, configuration, and automation. New operations on the two harder difficulties have no Git history. Existing incidents retain their original history. Hidden files are included in the explorer."),
+            ("03","Repair the real files","Use the built-in editor, or your preferred external tools. Save all writes your open repairs. New operations on the two harder difficulties have no Git history."),
             ("04","Validate repairs","Validation saves edited incident files first. A failed scan adds the difficulty's time penalty. Intel reveals a new control and also costs time."),
             ("05","Contain the incident","A clean scan stops the clock and records your final score. The repository stays on disk. The main menu and closing the game do not pause the clock."),
         ] {

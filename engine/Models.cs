@@ -9,7 +9,7 @@ namespace SourceDefender {
         public static Difficulty[] All = {
             new Difficulty { Name="Intern", Bugs=3, Penalty=15, HintCost=20, Description="3 findings · +15s per failed scan\nFull findings with file locations. A gentle first incident." },
             new Difficulty { Name="Maintainer", Bugs=6, Penalty=45, HintCost=45, Description="6 findings · +45s per failed scan\nFinding titles and categories. Follow the evidence." },
-            new Difficulty { Name="Incident commander", Bugs=10, Penalty=90, HintCost=75, Description="10 attacks · 2 encoding layers · +90s per failed scan\nCategory summaries. Misleading maintenance commits." },
+            new Difficulty { Name="Incident commander", Bugs=10, Penalty=90, HintCost=75, Description="10 attacks · 2 encoding layers · +90s per failed scan\nCategory summaries. Prior Git history unavailable." },
             new Difficulty { Name="Zero trust", Bugs=16, Penalty=180, HintCost=120, Description="16 attacks · 3 encoding layers · +180s per failed scan\nOnly the remaining count. Every control needs your attention." }
         };
     }

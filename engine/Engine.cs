@@ -16,15 +16,23 @@ namespace SourceDefender {
     for(int i=shuffled.Count-1;i>0;i--) {int j=random.Next(i+1);var t=shuffled[i];shuffled[i]=shuffled[j];shuffled[j]=t;}
     r.Broken=shuffled.Take(Difficulty.All[level].Bugs).Select(c=>c.Id).ToList();
     var support=ProjectTemplates.Files(language,level,scenario);
+    if(level>=2 && support.ContainsKey("docs/operations.md")) {
+     support["docs/operations.md"]=support["docs/operations.md"].Replace("\r\n","\n")
+      .Replace("- Git history contains the trusted baseline and subsequent maintenance commits.","- Prior Git history and the trusted baseline are unavailable at this difficulty.")
+      .Replace("Did a maintenance commit change review ownership or conceal source files?","Did repository configuration change review ownership or conceal source files?")
+      .Replace("Comparing against or restoring the trusted baseline is valid containment. Save\nyour files before validation.","Use the behavior contract and the source itself as evidence. Save\nyour files before validation.");
+    }
     foreach(var file in support)Write(r.Folder,file.Key,file.Value);
     r.RequiredFiles=support.Keys.Where(IsSource).ToList();
-    foreach(var c in catalog) Write(r.Folder,c.Path,c.Safe);
-    Write(r.Folder,"README.md","# "+scenario.Name+"\n\n"+scenario.Mission+"\n\nThis repository contains a multi-module local service: request routing, authentication, storage, review workflows, invoices, exports, telemetry, update plans, plugins, and background jobs. Domain data and record kinds are in config/scenario.json.\n\n## Incident\nA trusted automation account was compromised after the baseline commit. Find and remove attacker changes while preserving legitimate behavior. Use git log, git show and git diff to investigate. The baseline is available for forensic comparison. Restoring the baseline is a valid containment strategy.\n\nStart with docs/architecture.md, docs/api.md, docs/data-dictionary.md, and HANDBOOK.md. Trace requests through the application, repository, and policy services. Regression tests describe expected business behavior. The game checks all 16 known controls and detects missing supporting source or test files.\n\nReview source and automation before running local commands. The game itself never executes generated code. Message delivery, payment, plugin execution, and remote updates are represented as in-memory plans; the service makes no network requests.\n\n## Local commands after review\n"+Commands(language)+"\n\nLanguage: "+language+"\nSeed: "+r.Seed+"\nTemplate version: "+r.TemplateVersion+"\n");
+    foreach(var c in catalog) Write(r.Folder,c.Path,level>=2&&r.Broken.Contains(c.Id)?c.Unsafe:c.Safe);
+    Write(r.Folder,"README.md","# "+scenario.Name+"\n\n"+scenario.Mission+"\n\nThis repository contains a multi-module local service: request routing, authentication, storage, review workflows, invoices, exports, telemetry, update plans, plugins, and background jobs. Domain data and record kinds are in config/scenario.json.\n\n## Incident\n"+(level>=2?"A trusted automation account was compromised. Find and remove attacker changes while preserving legitimate behavior. No prior Git history or trusted baseline is available; investigate the current files and behavior contract.":"A trusted automation account was compromised after the baseline commit. Find and remove attacker changes while preserving legitimate behavior. Use git log, git show and git diff to investigate. The baseline is available for forensic comparison. Restoring the baseline is a valid containment strategy.")+"\n\nStart with docs/architecture.md, docs/api.md, docs/data-dictionary.md, and HANDBOOK.md. Trace requests through the application, repository, and policy services. Regression tests describe expected business behavior. The game checks all 16 known controls and detects missing supporting source or test files.\n\nReview source and automation before running local commands. The game itself never executes generated code. Message delivery, payment, plugin execution, and remote updates are represented as in-memory plans; the service makes no network requests.\n\n## Local commands after review\n"+Commands(language)+"\n\nLanguage: "+language+"\nSeed: "+r.Seed+"\nTemplate version: "+r.TemplateVersion+"\n");
     var handbook=new StringBuilder("# Trusted behavior contract\n\n");
     foreach(var c in catalog) handbook.AppendLine("- "+c.Policy);
-    handbook.AppendLine("\nSource repairs must retain each resolve_* API, its service entry point, and its documented literal value. Supporting source and tests must remain present. Configuration repairs restore baseline content; whitespace is ignored. The bounded static game checks do not prove arbitrary code safe. After source review, the project's own tests exercise repository behavior and business trust boundaries.");
+    handbook.AppendLine("\nSource repairs must retain each resolve_* API, its service entry point, and its documented literal value. Supporting source and tests must remain present. Configuration repairs must match the trusted behavior contract; whitespace is ignored. The bounded static game checks do not prove arbitrary code safe. After source review, the project's own tests exercise repository behavior and business trust boundaries.");
     Write(r.Folder,"HANDBOOK.md",handbook.ToString());
-    bool git=Git(r.Folder,"init -q")&&Git(r.Folder,"-c user.name=SourceDefender -c user.email=training@example.invalid add .")&&Git(r.Folder,"-c user.name=SourceDefender -c user.email=training@example.invalid commit -qm \"Trusted service baseline\"");
+    bool git=false;
+    if(level>=2)CreateEmptyGitBoundary(r.Folder);
+    else git=Git(r.Folder,"init -q")&&Git(r.Folder,"-c user.name=SourceDefender -c user.email=training@example.invalid add .")&&Git(r.Folder,"-c user.name=SourceDefender -c user.email=training@example.invalid commit -qm \"Trusted service baseline\"");
     int batch=0;
     foreach(var c in shuffled.Take(Difficulty.All[level].Bugs)) {
      Write(r.Folder,c.Path,c.Unsafe); batch++;
@@ -34,9 +42,16 @@ namespace SourceDefender {
     }
     int fileCount=Directory.GetFiles(r.Folder,"*",SearchOption.AllDirectories).Count(p=>!p.Contains(Path.DirectorySeparatorChar+".git"+Path.DirectorySeparatorChar));
     int codeLines=Directory.GetFiles(r.Folder,"*",SearchOption.AllDirectories).Where(IsSource).Sum(p=>File.ReadAllLines(p).Length);
-    r.Events.Add("Repository generated · "+fileCount+" files · "+codeLines+" source lines · "+r.Broken.Count+" attacker changes · "+(git?"Git evidence available":"Git unavailable; file review available"));
+    r.Events.Add("Repository generated · "+fileCount+" files · "+codeLines+" source lines · "+r.Broken.Count+" attacker changes · "+(level>=2?"Git history unavailable; investigate current files":git?"Git evidence available":"Git unavailable; file review available"));
     Store.Save(r); return r;
    } catch { r.Status="Generation failed";r.FinishedUtc=DateTime.UtcNow.ToString("o");Store.Save(r);throw; }
+  }
+  // An empty repository prevents Git from walking upward into a parent checkout.
+  // It contains no commits, objects, hooks, reflogs, or trusted baseline.
+  static void CreateEmptyGitBoundary(string folder) {
+   string dir=Path.Combine(folder,".git");Directory.CreateDirectory(Path.Combine(dir,"objects"));Directory.CreateDirectory(Path.Combine(dir,"refs"));
+   File.WriteAllText(Path.Combine(dir,"HEAD"),"ref: refs/heads/main\n",new UTF8Encoding(false));
+   File.WriteAllText(Path.Combine(dir,"config"),"[core]\n\trepositoryformatversion = 0\n\tbare = false\n",new UTF8Encoding(false));
   }
   static void Write(string folder,string path,string text) { string p=Path.Combine(folder,path.Replace('/',Path.DirectorySeparatorChar));Directory.CreateDirectory(Path.GetDirectoryName(p));File.WriteAllText(p,text,new UTF8Encoding(false)); }
   public static bool IsSource(string path) {return new[]{".py",".js",".go",".cs"}.Contains(Path.GetExtension(path));}
@@ -58,7 +73,7 @@ namespace SourceDefender {
     string path=Path.Combine(r.Folder,relative.Replace('/',Path.DirectorySeparatorChar));
     bool present=false;
     try {var info=new FileInfo(path);present=info.Exists&&info.Length>=20&&info.Length<=1024*1024&&(info.Attributes&FileAttributes.ReparsePoint)==0&&File.ReadAllText(path).Trim().Length>=20;}catch{}
-    if(!present)failed.Add(new Challenge{Id="integrity:"+relative,Title="Supporting source or tests missing / emptied",Category="Project integrity",Path=relative,Hint="Restore this supporting file from the trusted baseline while retaining your incident repairs."});
+    if(!present)failed.Add(new Challenge{Id="integrity:"+relative,Title="Supporting source or tests missing / emptied",Category="Project integrity",Path=relative,Hint=r.Level>=2?"Restore the supporting file and retain your incident repairs.":"Restore this supporting file from the trusted baseline while retaining your incident repairs."});
    }
    return failed;
   }

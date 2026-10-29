@@ -1,3 +1,9 @@
+## Harder investigations without history
+
+Incident commander and Zero trust no longer include a trusted Git baseline or
+attacker commit history. Investigate the source, behavior contracts, and configuration
+to identify and remove the attacks. The two easier difficulties retain Git evidence.
+
 ## A standalone investigation IDE
 
 SourceDefender now opens as its own game and source editor. Use the main menu,

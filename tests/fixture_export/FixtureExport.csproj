@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings><EnableDefaultEmbeddedResourceItems>false</EnableDefaultEmbeddedResourceItems></PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../engine/Catalog.cs" Link="Catalog.cs" />
+    <Compile Include="../../engine/ProjectTemplates.cs" Link="ProjectTemplates.cs" />
+    <Compile Include="../../engine/Models.cs" Link="Models.cs" />
+    <Compile Include="../../engine/Json.cs" Link="Json.cs" />
+    <EmbeddedResource Include="../../templates/**/*"><LogicalName>templates/%(RecursiveDir)%(Filename)%(Extension)</LogicalName></EmbeddedResource>
+  </ItemGroup>
+</Project>

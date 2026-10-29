@@ -17,3 +17,6 @@ runs/
 __pycache__/
 *.pyc
 .DS_Store
+
+tests/fixture_export/bin/
+tests/fixture_export/obj/

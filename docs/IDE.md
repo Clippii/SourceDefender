@@ -22,8 +22,9 @@ Extract the archive and launch `SourceDefender.exe` on Windows or
 and open it. Keep the game and engine together; the Mac application bundle
 already contains both. No language runtime is needed to play.
 
-Install Git if you want the generated maintenance commits, history, and diff
-views. Incidents can still be generated and repaired without it.
+Git provides history and diff views for Intern and Maintainer. New Incident commander
+and Zero trust runs have no generated Git history or baseline. Incidents can still be
+generated and repaired without Git.
 
 ## Main menu and incident setup
 
@@ -43,6 +44,8 @@ clock. Read the scenario mission and difficulty rules, then choose **Begin opera
 | Incident commander | 10 | 2 | +90s | +75s | Category counts |
 | Zero trust | 16 | 3 | +180s | +120s | Remaining count |
 
+Existing incidents retain their original history; this change applies to new runs.
+
 Only one human incident can be active at a time. Agent practice has its own run.
 Returning to the menu or closing the app does not pause the timer.
 
@@ -57,7 +60,7 @@ Begin with `README.md`, `docs/architecture.md`, and `HANDBOOK.md`.
 - Keep multiple files open in tabs. Modified tabs indicate unsaved changes.
 - Edit source directly with syntax colors and line numbers.
 - Search the repository for suspicious values or trace a name across files.
-- Review Git history and the current working-tree diff when Git is installed.
+- Review Git history and the current working-tree diff on Intern or Maintainer when Git is installed.
 - Read findings and activity in the game panel. Select a finding to open its file
   when the difficulty, or a charged hint, has revealed a path.
 

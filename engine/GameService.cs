@@ -68,7 +68,7 @@ namespace SourceDefender {
                     var failed=Engine.Scan(r);r.Attempts++;
                     if(failed.Count==0) {
                         r.Status="Contained";r.FinishedUtc=DateTime.UtcNow.ToString("o");
-                        report="INCIDENT CONTAINED\n\nAll 16 behavior controls passed. Your repository stays on disk. Review its Git diff for a debrief.";
+                        report="INCIDENT CONTAINED\n\nAll 16 behavior controls passed. Your repository stays on disk. "+(r.Level>=2?"Review your repairs for a debrief.":"Review its Git diff for a debrief.");
                     } else {
                         r.PenaltySeconds+=Difficulty.All[r.Level].Penalty;
                         report="VALIDATION FAILED / "+failed.Count+" controls unresolved\n+"+Difficulty.All[r.Level].Penalty+" seconds\n\n";

@@ -64,9 +64,9 @@ does not pause a run. Ending a run preserves its repository. Unsaved edits are
 protected when changing workspaces or exiting, and saves detect changes made by
 another editor before overwriting a file.
 
-Git generation creates a trusted baseline and attacker commits disguised as
-maintenance. Comparing with or restoring that baseline is a valid containment
-strategy. The game never executes generated project code. You can also open the
+Intern and Maintainer can include a trusted baseline and attacker commits when Git
+is installed. New Incident commander and Zero trust runs start without Git history or a
+recoverable baseline. The game never executes generated project code. You can also open the
 repository in another editor, or play through the optional VS Code extension.
 
 ## Agent practice over MCP
@@ -85,7 +85,7 @@ are never returned by the MCP tools or desktop protocol.
 See **[MCP setup and examples](docs/MCP.md)** for platform paths, client
 configuration, tool arguments, and practice-mode limits. A copy of `MCP.md` is
 also included with the downloads. This is local practice, not a competitive
-benchmark or security sandbox; the trusted Git baseline remains available.
+benchmark or security sandbox; local agents have the same history restrictions as players.
 
 ## Incidents
 
@@ -113,8 +113,8 @@ redirection, signer poisoning, and scheduled persistence.
 | Incident commander | 10 | 2 | +90s | +75s | Category counts |
 | Zero trust | 16 | 3 | +180s | +120s | Remaining count |
 
-Higher levels add nested Base64 values, misleading adapter names, and changes
-spread across separate commits. A seed reproduces attack selection for the same
+Higher levels add nested Base64 values and misleading adapter names. Incident
+commander and Zero trust omit Git history. A seed reproduces attack selection for the same
 settings and generator version.
 
 These are local training services. Network delivery, payments, and payload execution
@@ -167,8 +167,8 @@ runners. Every package must pass:
 - `python tests/verify_mcp.py` for real stdio negotiation, schemas, argument
   validation, response privacy, shared-store concurrency, mode isolation,
   timing/penalties, and restart persistence.
-- `python tests/verify_projects.py`, which creates incidents, restores the trusted
-  baseline, runs all four generated project suites and demos, and verifies containment.
+- `python tests/verify_projects.py`, which creates incidents, repairs them using a
+  test-only trusted fixture, runs all four generated project suites and demos, and verifies containment.
 - A packaged native-window smoke test (Xvfb with software OpenGL on Linux).
 - Extension helper and platform packaging tests, plus installation and gameplay in
   a real VS Code extension host on Linux.

@@ -2,7 +2,7 @@
   "name": "source-defender",
   "displayName": "SourceDefender",
   "description": "Investigate attacked repositories and validate repairs inside your editor. Everything runs locally.",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "publisher": "Clippii",
   "engines": {
     "vscode": "^1.90.0"

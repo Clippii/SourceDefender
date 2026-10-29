@@ -19,7 +19,7 @@ or Go installation is required to play.
 1. Choose **New incident** and select a scenario, language, difficulty, seed, and
    parent folder. The game creates a separate incident repository.
 2. The repository opens in a new editor window with its briefing, timer, and
-   SourceDefender sidebar. Investigate its files and Git history. Use **Open
+   SourceDefender sidebar. Investigate its files and, on easier difficulties, Git history. Use **Open
    briefing** to return to the repository's instructions.
 3. Save your repairs and choose **Validate changes** from the Incident toolbar.
    Edited incident files are saved before validation by default; unrelated files

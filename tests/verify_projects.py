@@ -7,6 +7,8 @@ import subprocess
 import sys
 import tempfile
 
+from trusted_fixture import restore
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 ENGINE = ROOT / ("SourceDefender.Engine.exe" if os.name == "nt" else "SourceDefender.Engine")
 
@@ -37,9 +39,9 @@ def main():
             attacked = call(dict(command="validate", id=record["Id"]), store)
             assert attacked["Run"]["Status"] == "Active"
             assert attacked["Run"]["PenaltySeconds"] == 180
-            baseline = subprocess.check_output(
-                ["git", "-C", str(folder), "rev-list", "--max-parents=0", "HEAD"], text=True).strip()
-            run("git", "restore", "--source", baseline, "--", ".", cwd=folder)
+            # The trusted test fixture comes from generator source, never from
+            # the hard-mode player's repository or its absent Git history.
+            restore(folder, language, 3)
             if language == "Python":
                 run(sys.executable, "-m", "unittest", "discover", "-s", "tests", "-v", cwd=folder)
                 run(sys.executable, "-m", "src.cli", "reconcile", cwd=folder)

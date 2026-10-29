@@ -13,6 +13,8 @@ import stat
 import subprocess
 import tempfile
 
+from trusted_fixture import controls, restore
+
 
 ROOT = Path(__file__).resolve().parents[1]
 ENGINE = ROOT / ("SourceDefender.Engine.exe" if os.name == "nt" else "SourceDefender.Engine")
@@ -122,6 +124,12 @@ def disclosure(level, response, selected, paths):
 def check_level(engine, root, level):
     store, projects = root / f"records-{level}", root / f"projects-{level}"
     projects.mkdir()
+    # A committed parent checkout verifies hard incidents cannot inherit a
+    # surrounding repository's history through Git's parent discovery.
+    git(projects, "init", "-q")
+    (projects / "parent-evidence.txt").write_text("parent only", encoding="utf-8")
+    git(projects, "add", "parent-evidence.txt")
+    git(projects, "-c", "user.name=Fixture", "-c", "user.email=fixture@example.invalid", "commit", "-qm", "Parent history must stay private")
     started = cli(engine, store, {
         "command": "generate", "scenario": level, "language": "Python", "level": level,
         "seed": "structured-findings-contract", "folder": str(projects),
@@ -133,10 +141,17 @@ def check_level(engine, root, level):
     assert len(selected) == (3, 6, 10, 16)[level] and set(selected) <= CONTROLS.keys(), selected
     public_values(started, selected)
     assert run["Findings"] == [] and run["Hints"] == run["Attempts"] == run["PenaltySeconds"] == 0, run
-    baseline = git(project, "rev-list", "--max-parents=0", "HEAD")
-    assert baseline and "\n" not in baseline, "Expected one trusted baseline commit"
-    paths = set(git(project, "diff", "--name-only", baseline, "HEAD", "--").splitlines())
+    fixture = controls("Python", level)
+    paths = {item["Path"] for item in fixture if item["Id"] in selected}
     assert len(paths) == len(selected), (paths, selected)
+    if level < 2:
+        baseline = git(project, "rev-list", "--max-parents=0", "HEAD")
+        assert baseline and "\n" not in baseline
+        assert set(git(project, "diff", "--name-only", baseline, "HEAD", "--").splitlines()) == paths
+    else:
+        assert git(project, "rev-list", "--all") == "", "Hard-mode Git history leaked"
+        assert Path(git(project, "rev-parse", "--show-toplevel")).resolve() == project.resolve()
+        assert not any(p.is_file() for p in (project / ".git" / "objects").rglob("*"))
 
     failed = cli(engine, store, {"command": "validate", "id": identifier}, selected)
     assert failed["Run"]["Status"] == "Active" and failed["Run"]["Attempts"] == 1, failed
@@ -173,7 +188,7 @@ def check_level(engine, root, level):
     penalty = expected_penalty + (15, 45, 90, 180)[level]
     assert rescanned["Run"]["PenaltySeconds"] == penalty, rescanned
 
-    git(project, "restore", "--source", baseline, "--", ".")
+    restore(project, "Python", level)
     contained = cli(engine, store, {"command": "validate", "id": identifier}, selected)
     final = contained["Run"]
     assert final["Status"] == "Contained" and final["Findings"] == [], contained

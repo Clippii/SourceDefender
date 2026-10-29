@@ -94,8 +94,8 @@ directories can host independent agent sessions concurrently.
   competitive cross-model leaderboard in this release.
 
 This is **practice mode**, not a secure evaluation sandbox. A local coding agent
-can inspect its generated Git history; restoring the trusted baseline remains
-valid under the existing practice rules. The known-incident static validator is
+can inspect Git history on Intern and Maintainer. New Incident commander and Zero trust runs
+have no generated history or baseline. The known-incident static validator is
 not a general security scanner. Hidden behavioral grading and stronger isolation
 would be required for a competitive benchmark. The server never executes
 generated source, install hooks, workflows, or remote payloads.
