@@ -1,35 +1,38 @@
 # SourceDefender
 
-A native desktop blue-team game about investigating attacked source repositories.
-Generate a codebase, review it in your own editor, remove attacker changes, and
-validate your repairs against the clock. Everything runs locally.
+A standalone blue-team game and source investigation IDE, built in Rust.
+Choose an incident, investigate an attacked repository, repair its real files,
+and contain the breach against the clock. The main menu, setup, editor, Git
+review, validation, and results live in one local application.
 
-Play inside VS Code with the SourceDefender extension, or use the native Rust
-desktop app with your preferred editor.
+No separate editor or VS Code installation is required. An optional VS Code
+extension remains available for players who prefer their usual editor.
 
 **[Download the latest release](https://github.com/Clippii/SourceDefender/releases/latest)**
 
 ## Downloads
 
-| Platform | Desktop app | VS Code extension |
+| Platform | Standalone game IDE | Optional VS Code extension |
 |---|---|---|
 | Windows x64 | [SourceDefender-win-x64.zip](https://github.com/Clippii/SourceDefender/releases/latest/download/SourceDefender-win-x64.zip) | [SourceDefender-win-x64.vsix](https://github.com/Clippii/SourceDefender/releases/latest/download/SourceDefender-win-x64.vsix) |
 | Linux x64 | [SourceDefender-linux-x64.tar.gz](https://github.com/Clippii/SourceDefender/releases/latest/download/SourceDefender-linux-x64.tar.gz) | [SourceDefender-linux-x64.vsix](https://github.com/Clippii/SourceDefender/releases/latest/download/SourceDefender-linux-x64.vsix) |
 | macOS Apple Silicon | [SourceDefender-osx-arm64.tar.gz](https://github.com/Clippii/SourceDefender/releases/latest/download/SourceDefender-osx-arm64.tar.gz) | [SourceDefender-osx-arm64.vsix](https://github.com/Clippii/SourceDefender/releases/latest/download/SourceDefender-osx-arm64.vsix) |
 | macOS Intel | [SourceDefender-osx-x64.tar.gz](https://github.com/Clippii/SourceDefender/releases/latest/download/SourceDefender-osx-x64.tar.gz) | [SourceDefender-osx-x64.vsix](https://github.com/Clippii/SourceDefender/releases/latest/download/SourceDefender-osx-x64.vsix) |
 
-For VS Code 1.90 or newer, open **Extensions → … → Install from VSIX…** and choose
-the file for your platform. Run **SourceDefender: New incident** from the Command
-Palette. The generated repository opens in a new editor window with its briefing,
-timer, findings, and validation controls. See the **[IDE guide](docs/IDE.md)**.
+Extract the standalone archive and launch `SourceDefender.exe` on Windows or
+`./SourceDefender` on Linux. On macOS, move `SourceDefender.app` to Applications.
+Open the main menu, configure an incident, and begin investigating in the built-in
+workspace. See the **[IDE guide](docs/IDE.md)** for controls and the full play flow.
 
-For the desktop app, extract the archive and launch `SourceDefender.exe` on Windows
-or `./SourceDefender` on Linux. On macOS, move `SourceDefender.app` to Applications.
-
-The game engine is bundled with each release. No .NET, Rust, Python, Node, or Go
+The game engine is bundled with each download. No .NET, Rust, Python, Node, or Go
 installation is required to play. Keep the app and engine together; on macOS both
-are inside the application bundle. Downloads include `SHA256SUMS.txt` on the release page.
-The VS Code extension also bundles its engine and can be used on its own.
+are inside the application bundle. `SHA256SUMS.txt` on the release page covers all
+downloads. Git is optional, but enables repository history and diff review.
+
+For the optional extension, use VS Code 1.90 or newer and choose
+**Extensions → … → Install from VSIX…**. Install the file for your platform, then
+run **SourceDefender: New incident** from the Command Palette. The extension also
+bundles its engine and shares local game records with the standalone app.
 
 Linux builds target Ubuntu 24.04 or newer with a graphical desktop and OpenGL.
 The X11 backend needs `libxkbcommon-x11-0` (install with `sudo apt-get install libxkbcommon-x11-0` if absent).
@@ -41,22 +44,30 @@ Windows uses the native Direct3D graphics backend; Linux and macOS use OpenGL.
 
 ## Play
 
-1. Choose a scenario, source language, difficulty, and optional seed.
-2. Select a parent folder and start. A unique incident repository is created and the clock begins.
-3. Select **Open in IDE** to open VS Code, or **Open folder** to use your preferred editor.
-   Read the repository's README, architecture notes, and handbook.
-4. Investigate source, tests, automation, and Git history. Save repairs to the actual files.
-5. Return to SourceDefender and select **Validate changes**. A clean result stops the timer.
+1. Choose **New operation** from the main menu, or **Resume operation** for an active run.
+2. Select a scenario, source language, difficulty, optional seed, and parent
+   folder. Starting creates a unique repository and begins the clock.
+3. Read the briefing, architecture notes, and handbook in the integrated editor.
+   Explore files, search the source, and review Git evidence.
+4. Repair the actual files using the tabbed editor. Validation saves your edited
+   incident files before scanning; it cancels if a file cannot be saved.
+5. Select **Validate repairs**. Unresolved controls add a time penalty; a clean
+   result contains the incident, stops the clock, and records the score.
 
-With the VS Code extension installed, use **Validate changes** in the SourceDefender
-sidebar. It saves edited incident files by default and leaves unrelated files alone.
-Findings and hints open files when the difficulty allows their paths to be revealed.
+The built-in workspace includes a file explorer, syntax-colored editing, line
+numbers, search, Git history and working-tree diff views, and a game HUD with
+time, penalties, hints, and validation. Findings open files only when the selected
+difficulty allows their paths to be revealed. The debrief and **Operation archive** keep completed runs available for review.
 
-Failed validation and hints add time. Closing the app does not pause a run.
-The next launch restores the active incident. Ending a run preserves its repository.
-Git is optional for generation, but installing Git gives you a trusted baseline and
-attacker commits disguised as maintenance. Comparing with or restoring that baseline
-is a valid containment strategy. The game never executes generated project code.
+Failed validation and hints add time. Returning to the menu or closing the app
+does not pause a run. Ending a run preserves its repository. Unsaved edits are
+protected when changing workspaces or exiting, and saves detect changes made by
+another editor before overwriting a file.
+
+Git generation creates a trusted baseline and attacker commits disguised as
+maintenance. Comparing with or restoring that baseline is a valid containment
+strategy. The game never executes generated project code. You can also open the
+repository in another editor, or play through the optional VS Code extension.
 
 ## Agent practice over MCP
 
@@ -66,8 +77,8 @@ on Linux/macOS. The six tools list scenarios, start an agent incident, report
 status, validate saved changes, provide hints, and end a run. The agent edits
 the generated repository using its normal file tools.
 
-Select **Agent practice** in the desktop sidebar to observe its timer, game tool
-calls, validation attempts, and activity. Human and agent runs are labelled
+Open **Agent watch** from the main menu to observe its timer, game tool
+calls, validation attempts, and activity in a read-only workspace. Human and agent runs are labelled
 separately and cannot control each other. A run's attack IDs and private manifests
 are never returned by the MCP tools or desktop protocol.
 
@@ -151,7 +162,8 @@ runners. Every package must pass:
 
 - 1,632 engine checks covering languages, difficulty, legacy/current layouts,
   attack detection, restored projects, code size, and missing files.
-- Rust tests for timing, saved records, Unicode paths, and actual engine interaction.
+- Rust tests for timing, saved records, Unicode paths, actual engine interaction,
+  bounded repository access, editing, and conflict detection.
 - `python tests/verify_mcp.py` for real stdio negotiation, schemas, argument
   validation, response privacy, shared-store concurrency, mode isolation,
   timing/penalties, and restart persistence.

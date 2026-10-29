@@ -31,6 +31,16 @@ pub struct Run {
     pub tool_calls: u32,
     pub events: Vec<String>,
     pub score: i64,
+    #[serde(default)]
+    pub findings: Vec<PublicFinding>,
+}
+#[derive(Clone, Default, Deserialize)]
+#[serde(rename_all = "PascalCase")]
+pub struct PublicFinding {
+    pub title: String,
+    pub category: String,
+    pub path: Option<String>,
+    pub count: u32,
 }
 impl Run {
     pub fn is_agent(&self) -> bool {
@@ -175,37 +185,6 @@ pub fn open_folder(path: &std::path::Path) -> Result<(), String> {
         .arg(path.canonicalize().map_err(|e| e.to_string())?)
         .spawn()
         .map_err(|e| format!("Could not open folder: {e}"))?;
-    Ok(())
-}
-
-pub fn open_ide(path: &std::path::Path) -> Result<(), String> {
-    if !path.is_dir() {
-        return Err("The repository folder no longer exists.".into());
-    }
-    #[cfg(windows)]
-    let executable = {
-        let mut candidates = Vec::new();
-        if let Some(local) = std::env::var_os("LOCALAPPDATA") {
-            candidates.push(PathBuf::from(local).join("Programs/Microsoft VS Code/Code.exe"));
-        }
-        if let Some(programs) = std::env::var_os("ProgramFiles") {
-            candidates.push(PathBuf::from(programs).join("Microsoft VS Code/Code.exe"));
-        }
-        candidates.into_iter().find(|p| p.is_file()).ok_or(
-            "VS Code was not found. Install VS Code and the SourceDefender IDE extension, or use Open folder.",
-        )?
-    };
-    #[cfg(target_os = "macos")]
-    let executable =
-        PathBuf::from("/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code");
-    #[cfg(target_os = "linux")]
-    let executable = PathBuf::from("code");
-    let mut command = Command::new(executable);
-    command.env_remove("ELECTRON_RUN_AS_NODE");
-    #[cfg(windows)]
-    command.creation_flags(0x08000000);
-    command.arg("--new-window").arg(path).spawn()
-        .map_err(|e|format!("Could not open VS Code: {e}. Install VS Code and the SourceDefender extension, or use Open folder."))?;
     Ok(())
 }
 
